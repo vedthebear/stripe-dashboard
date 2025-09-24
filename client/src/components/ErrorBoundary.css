@@ -1,0 +1,171 @@
+.error-boundary {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+  padding: 20px;
+  background-color: #f8f9fa;
+}
+
+.error-content {
+  text-align: center;
+  max-width: 600px;
+  background: white;
+  padding: 40px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e9ecef;
+}
+
+.error-icon {
+  font-size: 48px;
+  margin-bottom: 20px;
+}
+
+.error-content h2 {
+  color: #dc3545;
+  margin-bottom: 16px;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.error-message {
+  color: #6c757d;
+  margin-bottom: 24px;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.error-details {
+  text-align: left;
+  margin: 24px 0;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  background-color: #f8f9fa;
+}
+
+.error-details summary {
+  padding: 12px 16px;
+  background-color: #e9ecef;
+  cursor: pointer;
+  font-weight: 500;
+  border-radius: 6px 6px 0 0;
+}
+
+.error-details summary:hover {
+  background-color: #dee2e6;
+}
+
+.error-stack {
+  padding: 16px;
+}
+
+.error-stack h4 {
+  margin: 16px 0 8px 0;
+  color: #495057;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.error-stack pre {
+  background-color: #f1f3f4;
+  padding: 12px;
+  border-radius: 4px;
+  overflow-x: auto;
+  font-size: 12px;
+  color: #dc3545;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.error-actions {
+  margin: 24px 0;
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.retry-button,
+.reload-button {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 120px;
+}
+
+.retry-button {
+  background-color: #007bff;
+  color: white;
+}
+
+.retry-button:hover:not(:disabled) {
+  background-color: #0056b3;
+}
+
+.retry-button:disabled {
+  background-color: #6c757d;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.reload-button {
+  background-color: #6c757d;
+  color: white;
+}
+
+.reload-button:hover {
+  background-color: #545b62;
+}
+
+.error-help {
+  text-align: left;
+  margin-top: 24px;
+  padding: 16px;
+  background-color: #f8f9fa;
+  border-radius: 6px;
+  border-left: 4px solid #ffc107;
+}
+
+.error-help p {
+  margin: 0 0 12px 0;
+  font-weight: 500;
+  color: #495057;
+}
+
+.error-help ul {
+  margin: 0;
+  padding-left: 20px;
+  color: #6c757d;
+}
+
+.error-help li {
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+@media (max-width: 768px) {
+  .error-boundary {
+    padding: 12px;
+    min-height: 300px;
+  }
+
+  .error-content {
+    padding: 24px 20px;
+  }
+
+  .error-actions {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .retry-button,
+  .reload-button {
+    width: 100%;
+    max-width: 200px;
+  }
+}
