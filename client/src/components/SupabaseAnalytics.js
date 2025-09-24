@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './SupabaseAnalytics.css';
+import MRRGrowthChart from './MRRGrowthChart';
 
 const SupabaseAnalytics = () => {
   const [analyticsData, setAnalyticsData] = useState(null);
@@ -293,6 +294,11 @@ const SupabaseAnalytics = () => {
             )}
           </div>
         </div>
+      </div>
+
+      {/* MRR Growth Chart */}
+      <div className="mrr-chart-section">
+        <MRRGrowthChart />
       </div>
 
       {/* Summary Stats */}

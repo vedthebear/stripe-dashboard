@@ -375,6 +375,11 @@
   margin: 0;
 }
 
+/* MRR Chart Section */
+.mrr-chart-section {
+  margin: 30px 0;
+}
+
 /* Summary Stats */
 .summary-stats {
   display: flex;
