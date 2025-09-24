@@ -9,7 +9,10 @@ const SupabaseAnalytics = () => {
 
   const fetchAnalyticsData = async () => {
     try {
-      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5050';
+      // Use relative URL in production, localhost in development
+      const apiUrl = process.env.NODE_ENV === 'production'
+        ? '' // Use relative URLs in production (same domain)
+        : (process.env.REACT_APP_API_URL || 'http://localhost:5050');
       const response = await fetch(`${apiUrl}/api/supabase/analytics`);
 
       if (!response.ok) {
