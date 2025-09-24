@@ -1,0 +1,16 @@
+{
+  "functions": {
+    "server/index.js": {
+      "maxDuration": 300
+    },
+    "api/cron/daily-sync.js": {
+      "maxDuration": 300
+    }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/daily-sync",
+      "schedule": "0 8 * * *"
+    }
+  ]
+}
