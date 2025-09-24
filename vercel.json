@@ -1,9 +1,9 @@
 {
   "functions": {
-    "server/index.js": {
+    "api/cron/daily-sync.js": {
       "maxDuration": 300
     },
-    "api/cron/daily-sync.js": {
+    "api/supabase/analytics.js": {
       "maxDuration": 300
     }
   },
@@ -12,5 +12,7 @@
       "path": "/api/cron/daily-sync",
       "schedule": "0 8 * * *"
     }
-  ]
+  ],
+  "buildCommand": "cd client && npm run build",
+  "outputDirectory": "client/build"
 }
