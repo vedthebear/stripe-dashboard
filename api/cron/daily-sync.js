@@ -212,6 +212,68 @@ async function syncToSupabase(subscriptions) {
   return { processed, errors };
 }
 
+async function saveHistoricalMRR() {
+  console.log('📊 Saving daily historical MRR data...');
+
+  try {
+    // Get current MRR metrics from Supabase
+    const { data: payingSubscriptions, error: payingError } = await supabase
+      .from('subscriptions')
+      .select('monthly_total')
+      .eq('is_counted', true)
+      .eq('is_active', true);
+
+    if (payingError) throw payingError;
+
+    const { data: trialSubscriptions, error: trialError } = await supabase
+      .from('subscriptions')
+      .select('monthly_total')
+      .eq('subscription_status', 'trialing')
+      .eq('is_active', true)
+      .eq('is_trial_counted', true);
+
+    if (trialError) throw trialError;
+
+    // Add hard-coded customers
+    const hardCodedMRR = 1500; // Steph (500) + Nick (1000)
+
+    // Calculate metrics
+    const officialMRR = payingSubscriptions.reduce((sum, sub) => sum + parseFloat(sub.monthly_total), 0) + hardCodedMRR;
+    const arr = officialMRR * 12;
+    const payingCustomersCount = payingSubscriptions.length + 2; // +2 for hard-coded customers
+    const averageCustomerValue = payingCustomersCount > 0 ? officialMRR / payingCustomersCount : 0;
+    const trialPipelineMRR = trialSubscriptions.reduce((sum, sub) => sum + parseFloat(sub.monthly_total), 0);
+    const activeTrialsCount = trialSubscriptions.length;
+    const totalOpportunity = officialMRR + trialPipelineMRR;
+
+    // Insert or update today's record
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+
+    const { error: upsertError } = await supabase
+      .from('historical_mrr')
+      .upsert({
+        date: today,
+        official_mrr: officialMRR,
+        arr: arr,
+        paying_customers_count: payingCustomersCount,
+        average_customer_value: averageCustomerValue,
+        trial_pipeline_mrr: trialPipelineMRR,
+        active_trials_count: activeTrialsCount,
+        total_opportunity: totalOpportunity
+      }, {
+        onConflict: 'date'
+      });
+
+    if (upsertError) throw upsertError;
+
+    console.log(`✅ Historical MRR saved for ${today}: $${officialMRR.toFixed(2)} MRR, $${arr.toFixed(2)} ARR`);
+
+  } catch (error) {
+    console.error('❌ Error saving historical MRR:', error.message);
+    // Don't throw error - we don't want to fail the entire sync for this
+  }
+}
+
 export default async function handler(req, res) {
   console.log('🌅 Starting Vercel Cron Job - Daily Stripe → Supabase Sync');
   const startTime = new Date();
@@ -232,6 +294,9 @@ export default async function handler(req, res) {
 
     // Sync to Supabase
     const result = await syncToSupabase(subscriptions);
+
+    // Save daily historical MRR data
+    await saveHistoricalMRR();
 
     const endTime = new Date();
     const duration = Math.round((endTime - startTime) / 1000);

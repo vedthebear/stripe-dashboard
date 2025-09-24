@@ -103,6 +103,20 @@ const SupabaseAnalytics = () => {
         </div>
       </div>
 
+      {/* Giant ARR Card */}
+      <div className="arr-hero-card">
+        <div className="arr-content">
+          <div className="arr-icon">🚀</div>
+          <div className="arr-value">
+            {formatCurrency(analyticsData.official_mrr.total * 12)}
+          </div>
+          <div className="arr-label">Annual Recurring Revenue (ARR)</div>
+          <div className="arr-subtitle">
+            Based on {formatCurrency(analyticsData.official_mrr.total)} MRR
+          </div>
+        </div>
+      </div>
+
       {/* Key Metrics */}
       <div className="key-metrics">
         <div className="metric-card primary">
