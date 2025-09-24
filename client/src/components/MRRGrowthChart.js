@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import './MRRGrowthChart.css';
 
 const MRRGrowthChart = () => {
@@ -6,11 +6,7 @@ const MRRGrowthChart = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    fetchHistoricalData();
-  }, []);
-
-  const fetchHistoricalData = async () => {
+  const fetchHistoricalData = useCallback(async () => {
     try {
       const apiUrl = process.env.NODE_ENV === 'production'
         ? ''
@@ -34,7 +30,11 @@ const MRRGrowthChart = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchHistoricalData();
+  }, [fetchHistoricalData]);
 
   // Generate mock data for demo purposes
   const generateMockData = () => {
