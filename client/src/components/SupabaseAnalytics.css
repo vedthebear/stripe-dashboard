@@ -511,3 +511,8 @@
     gap: 20px;
   }
 }
+
+/* MRR Chart Section */
+.mrr-chart-section {
+  margin: 40px 0;
+}
