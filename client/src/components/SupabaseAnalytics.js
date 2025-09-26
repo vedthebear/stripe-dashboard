@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './SupabaseAnalytics.css';
 import MRRGrowthChart from './MRRGrowthChart';
+import RetentionCard from './RetentionCard';
 
 const SupabaseAnalytics = () => {
   const [analyticsData, setAnalyticsData] = useState(null);
@@ -296,9 +297,14 @@ const SupabaseAnalytics = () => {
         </div>
       </div>
 
-      {/* MRR Growth Chart */}
-      <div className="mrr-chart-section">
-        <MRRGrowthChart />
+      {/* Analytics Charts Section */}
+      <div className="analytics-charts-section">
+        <div className="chart-container">
+          <MRRGrowthChart />
+        </div>
+        <div className="retention-container">
+          <RetentionCard />
+        </div>
       </div>
 
       {/* Summary Stats */}

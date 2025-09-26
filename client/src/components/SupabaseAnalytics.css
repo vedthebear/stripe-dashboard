@@ -512,7 +512,24 @@
   }
 }
 
-/* MRR Chart Section */
-.mrr-chart-section {
+/* Analytics Charts Section - Side by Side Layout */
+.analytics-charts-section {
   margin: 40px 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+.chart-container,
+.retention-container {
+  min-height: 280px;
+}
+
+/* Responsive design for charts section */
+@media (max-width: 1200px) {
+  .analytics-charts-section {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
 }

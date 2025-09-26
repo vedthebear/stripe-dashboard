@@ -402,6 +402,102 @@ async function saveHistoricalMRR() {
   }
 }
 
+async function saveCustomerRetentionSnapshots() {
+  console.log('\n👥 Saving daily customer retention snapshots...');
+
+  try {
+    // Get all current subscription data for retention tracking
+    const { data: allSubscriptions, error: subscriptionsError } = await supabase
+      .from('subscriptions')
+      .select('stripe_customer_id, stripe_subscription_id, customer_email, customer_name, subscription_status, monthly_total, is_active, is_counted');
+
+    if (subscriptionsError) throw subscriptionsError;
+
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+
+    // Prepare customer snapshots
+    const customerSnapshots = allSubscriptions.map(sub => ({
+      date: today,
+      stripe_customer_id: sub.stripe_customer_id,
+      stripe_subscription_id: sub.stripe_subscription_id,
+      customer_email: sub.customer_email,
+      customer_name: sub.customer_name,
+      subscription_status: sub.subscription_status,
+      monthly_value: parseFloat(sub.monthly_total),
+      is_active: sub.is_active,
+      is_counted: sub.is_counted
+    }));
+
+    // Add hard-coded customers to retention tracking
+    customerSnapshots.push(
+      {
+        date: today,
+        stripe_customer_id: 'hardcoded_steph_moccio',
+        stripe_subscription_id: 'hardcoded_steph_moccio_sub',
+        customer_email: 'steph@example.com',
+        customer_name: 'Steph Moccio',
+        subscription_status: 'active',
+        monthly_value: 500.00,
+        is_active: true,
+        is_counted: true
+      },
+      {
+        date: today,
+        stripe_customer_id: 'hardcoded_nick_scott',
+        stripe_subscription_id: 'hardcoded_nick_scott_sub',
+        customer_email: 'nick@example.com',
+        customer_name: 'Nick Scott',
+        subscription_status: 'active',
+        monthly_value: 1000.00,
+        is_active: true,
+        is_counted: true
+      }
+    );
+
+    // First, delete any existing snapshots for today to ensure clean data
+    const { error: deleteError } = await supabase
+      .from('customer_retention_snapshots')
+      .delete()
+      .eq('date', today);
+
+    if (deleteError) {
+      console.warn(`⚠️ Warning deleting existing snapshots for ${today}:`, deleteError.message);
+    }
+
+    // Insert all customer snapshots in batches (Supabase has limits on batch size)
+    const batchSize = 100;
+    let totalInserted = 0;
+    let errors = 0;
+
+    for (let i = 0; i < customerSnapshots.length; i += batchSize) {
+      const batch = customerSnapshots.slice(i, i + batchSize);
+
+      const { error: insertError } = await supabase
+        .from('customer_retention_snapshots')
+        .insert(batch);
+
+      if (insertError) {
+        console.error(`❌ Error inserting customer snapshot batch ${i / batchSize + 1}:`, insertError.message);
+        errors++;
+      } else {
+        totalInserted += batch.length;
+        if (totalInserted % 50 === 0) {
+          console.log(`📊 Inserted ${totalInserted}/${customerSnapshots.length} customer snapshots...`);
+        }
+      }
+    }
+
+    console.log(`✅ Customer retention snapshots saved for ${today}: ${totalInserted} customers tracked`);
+    if (errors > 0) {
+      console.warn(`⚠️ ${errors} batch errors occurred during customer snapshot insertion`);
+    }
+
+  } catch (error) {
+    console.error('❌ Error saving customer retention snapshots:', error.message);
+    // Don't throw error - we don't want to fail the entire sync for this
+  }
+}
+
 /**
  * Main sync function
  */
@@ -430,6 +526,9 @@ async function dailySync() {
 
     // Save daily historical MRR data
     await saveHistoricalMRR();
+
+    // Save daily customer retention snapshots
+    await saveCustomerRetentionSnapshots();
 
     // Generate report
     await generateReport();

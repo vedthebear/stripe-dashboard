@@ -1,0 +1,310 @@
+/* Retention Card Component */
+.retention-card {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.retention-header {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 20px;
+}
+
+.retention-header h3 {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.retention-subtitle {
+  font-size: 0.9rem;
+  color: #6b7280;
+  margin-top: 4px;
+}
+
+.retention-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: rgba(251, 191, 36, 0.1);
+  border: 1px solid rgba(251, 191, 36, 0.2);
+  border-radius: 8px;
+  color: #d97706;
+  font-size: 0.85rem;
+  margin-bottom: 16px;
+}
+
+.retention-metrics {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.retention-metric-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: #f8fafc;
+  position: relative;
+}
+
+.retention-metric-card:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
+}
+
+.metric-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.metric-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.metric-info {
+  flex: 1;
+}
+
+.metric-label {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 2px;
+}
+
+.metric-period {
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.metric-value-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.retention-rate {
+  font-size: 1.8rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.metric-summary {
+  font-size: 0.85rem;
+  color: #6b7280;
+  text-align: right;
+}
+
+.churn-indicator {
+  color: #dc2626;
+}
+
+.expand-indicator {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  color: #9ca3af;
+  font-size: 0.8rem;
+  user-select: none;
+}
+
+/* Retention Details */
+.retention-details {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 16px;
+  margin-top: 8px;
+}
+
+.details-header {
+  margin-bottom: 12px;
+}
+
+.details-header h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 4px 0;
+}
+
+.details-stats {
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.churn-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.churn-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 8px 12px;
+  background: #f8fafc;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+}
+
+.customer-info {
+  flex: 1;
+}
+
+.customer-name {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #1f2937;
+}
+
+.customer-email {
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.churn-value {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #dc2626;
+  text-align: right;
+}
+
+.churn-more {
+  text-align: center;
+  font-size: 0.8rem;
+  color: #6b7280;
+  font-style: italic;
+  padding: 8px;
+}
+
+.no-churn {
+  text-align: center;
+  padding: 20px;
+  color: #16a34a;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.retention-footer {
+  margin-top: 16px;
+  display: flex;
+  justify-content: center;
+  padding-top: 12px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.data-source {
+  font-size: 0.8rem;
+  padding: 4px 8px;
+  border-radius: 12px;
+}
+
+.live-data {
+  color: #16a34a;
+  background: rgba(34, 197, 94, 0.1);
+}
+
+.demo-data {
+  color: #d97706;
+  background: rgba(251, 191, 36, 0.1);
+}
+
+/* Loading states */
+.retention-card.loading {
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
+.retention-skeleton {
+  width: 100%;
+  max-width: 300px;
+}
+
+.skeleton-header,
+.skeleton-metrics {
+  height: 20px;
+  background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+  border-radius: 4px;
+  margin-bottom: 12px;
+}
+
+.skeleton-header {
+  height: 24px;
+  width: 60%;
+}
+
+.skeleton-metrics {
+  width: 80%;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.loading-text {
+  color: #6b7280;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .retention-card {
+    padding: 16px;
+  }
+
+  .metric-header {
+    gap: 8px;
+  }
+
+  .retention-rate {
+    font-size: 1.5rem;
+  }
+
+  .retention-details {
+    padding: 12px;
+  }
+
+  .churn-item {
+    flex-direction: column;
+    gap: 4px;
+    align-items: flex-start;
+  }
+
+  .churn-value {
+    text-align: left;
+  }
+}
+
+/* Color variations for different retention rates */
+.retention-excellent { color: #16a34a; }
+.retention-good { color: #22c55e; }
+.retention-okay { color: #eab308; }
+.retention-concerning { color: #f59e0b; }
+.retention-poor { color: #dc2626; }
