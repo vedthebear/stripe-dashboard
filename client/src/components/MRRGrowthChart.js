@@ -39,7 +39,6 @@ const MRRGrowthChart = () => {
   // Generate mock data for demo purposes
   const generateMockData = () => {
     const data = [];
-    const currentMRR = 9375; // Updated to actual current MRR
     const today = new Date();
 
     for (let i = 59; i >= 0; i--) {
