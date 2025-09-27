@@ -18,12 +18,11 @@ export default async function handler(req, res) {
       });
     }
 
-    // Get historical MRR data from the last 30 days
+    // Get all historical MRR data (no limit to show full timeline)
     const { data: historicalData, error: histError } = await supabase
       .from('historical_mrr')
       .select('date, official_mrr, arr, paying_customers_count, trial_pipeline_mrr, active_trials_count, total_opportunity')
-      .order('date', { ascending: true })
-      .limit(30);
+      .order('date', { ascending: true });
 
     if (histError) {
       console.error(`❌ [${requestId}] Error fetching historical data:`, histError);

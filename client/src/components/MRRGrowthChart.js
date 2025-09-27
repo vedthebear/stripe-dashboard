@@ -39,22 +39,33 @@ const MRRGrowthChart = () => {
   // Generate mock data for demo purposes
   const generateMockData = () => {
     const data = [];
-    const baseValue = 9874; // Current MRR
+    const currentMRR = 9375; // Updated to actual current MRR
     const today = new Date();
 
-    for (let i = 29; i >= 0; i--) {
+    for (let i = 59; i >= 0; i--) {
       const date = new Date(today);
       date.setDate(date.getDate() - i);
 
-      // Create realistic growth pattern
-      const growthFactor = (29 - i) / 29;
-      const randomVariation = (Math.random() - 0.5) * 300;
-      const value = Math.max(7000, baseValue - (2000 * (1 - growthFactor)) + randomVariation);
+      // Create realistic growth pattern matching actual data
+      let value;
+      if (i > 50) {
+        // Early period: $1,947 - $2,500 range
+        value = 1947 + (i - 50) * 50 + (Math.random() - 0.5) * 100;
+      } else if (i > 40) {
+        // Mid period: $2,500 - $4,500 range
+        value = 2500 + (50 - i) * 200 + (Math.random() - 0.5) * 200;
+      } else if (i > 10) {
+        // Growth period: $4,500 - $7,000 range
+        value = 4500 + (40 - i) * 80 + (Math.random() - 0.5) * 300;
+      } else {
+        // Recent explosive growth: $7,000 - $9,375
+        value = 7000 + (10 - i) * 237 + (Math.random() - 0.5) * 200;
+      }
 
       data.push({
         date: date.toISOString().split('T')[0],
-        official_mrr: Math.round(value),
-        arr: Math.round(value * 12)
+        official_mrr: Math.max(1900, Math.round(value)),
+        arr: Math.round(Math.max(1900, value) * 12)
       });
     }
     return data;
