@@ -1543,7 +1543,8 @@ app.get('/api/trial-conversion/calculate', async (req, res) => {
 
     const convertedCount = conversions.length;
     const unconvertedCount = unconverted.length;
-    const conversionRate = totalTrials > 0 ? (convertedCount / totalTrials) * 100 : 0;
+    const actualTrialsCount = convertedCount + unconvertedCount; // Exclude currently active trials
+    const conversionRate = actualTrialsCount > 0 ? (convertedCount / actualTrialsCount) * 100 : 0;
 
     conversions.sort((a, b) => b.monthly_value - a.monthly_value);
     unconverted.sort((a, b) => b.monthly_value - a.monthly_value);
@@ -1554,7 +1555,7 @@ app.get('/api/trial-conversion/calculate', async (req, res) => {
       lookback_days: lookbackDays,
       conversion_rate: Math.round(conversionRate * 100) / 100,
       metrics: {
-        total_trials: totalTrials,
+        total_trials: actualTrialsCount,
         converted_trials: convertedCount,
         unconverted_trials: unconvertedCount
       },
@@ -1568,7 +1569,7 @@ app.get('/api/trial-conversion/calculate', async (req, res) => {
     };
 
     console.log(`✅ [${requestId}] ${days}-day trial conversion calculated: ${conversionRate.toFixed(2)}% conversion rate`);
-    console.log(`   Total Trials: ${totalTrials}, Converted: ${convertedCount}, Unconverted: ${unconvertedCount}`);
+    console.log(`   Total Trials: ${actualTrialsCount}, Converted: ${convertedCount}, Unconverted: ${unconvertedCount}`);
 
     res.json(responseData);
 

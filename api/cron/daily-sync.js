@@ -282,7 +282,7 @@ async function saveCustomerRetentionSnapshots() {
     // Get all current subscription data for retention tracking
     const { data: allSubscriptions, error: subscriptionsError } = await supabase
       .from('subscriptions')
-      .select('stripe_customer_id, stripe_subscription_id, customer_email, customer_name, subscription_status, monthly_total, is_active, is_counted, is_trial_counted');
+      .select('stripe_customer_id, stripe_subscription_id, customer_email, customer_name, subscription_status, monthly_total, is_active, is_counted, is_trial_counted, percent_off');
 
     if (subscriptionsError) throw subscriptionsError;
 
@@ -299,7 +299,8 @@ async function saveCustomerRetentionSnapshots() {
       monthly_value: parseFloat(sub.monthly_total),
       is_active: sub.is_active,
       is_counted: sub.is_counted,
-      is_trial_counted: sub.is_trial_counted || false
+      is_trial_counted: sub.is_trial_counted || false,
+      percent_off: sub.percent_off
     }));
 
     // First, delete any existing snapshots for today to ensure clean data

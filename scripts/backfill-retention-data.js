@@ -30,7 +30,7 @@ async function backfillRetentionData(daysToBackfill = 14) {
     console.log('\n📋 Fetching current subscription data...');
     const { data: allSubscriptions, error: subscriptionsError } = await supabase
       .from('subscriptions')
-      .select('stripe_customer_id, stripe_subscription_id, customer_email, customer_name, subscription_status, monthly_total, is_active, is_counted, is_trial_counted, date_created, date_canceled');
+      .select('stripe_customer_id, stripe_subscription_id, customer_email, customer_name, subscription_status, monthly_total, is_active, is_counted, is_trial_counted, date_created, date_canceled, percent_off');
 
     if (subscriptionsError) {
       throw subscriptionsError;
@@ -94,7 +94,8 @@ async function backfillRetentionData(daysToBackfill = 14) {
         monthly_value: parseFloat(sub.monthly_total),
         is_active: sub.is_active,
         is_counted: sub.is_counted,
-        is_trial_counted: sub.is_trial_counted || false
+        is_trial_counted: sub.is_trial_counted || false,
+        percent_off: sub.percent_off
       }));
 
       console.log(`   📊 Processing ${customerSnapshots.length} customer snapshots...`);

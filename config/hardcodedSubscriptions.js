@@ -74,10 +74,10 @@ const hardcodedSubscriptions = [
   },
   {
     stripe_subscription_id: 'ken',
-    customer_email: 'michael@peerspace.com',
-    customer_name: 'Michael',
+    customer_email: 'ken.colton@medal.tv',
+    customer_name: 'Ken',
     subscription_status: 'active',
-    monthly_total: 1000,
+    monthly_total: 1500,
     date_created: '2024-07-01T00:00:00Z',
     trial_end_date: null,
     is_active: true,
