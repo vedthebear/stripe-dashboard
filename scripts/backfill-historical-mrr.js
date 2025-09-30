@@ -1,5 +1,6 @@
 require('dotenv').config({ path: '../.env' });
 const { createClient } = require('@supabase/supabase-js');
+const hardcodedSubscriptions = require('../config/hardcodedSubscriptions');
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -86,11 +87,11 @@ async function backfillHistoricalMRR(daysToBackfill = 30) {
       });
 
       // Calculate MRR metrics for this date
-      const hardCodedMRR = 1500; // Steph ($500) + Nick ($1000)
+      const hardCodedMRR = hardcodedSubscriptions.reduce((sum, sub) => sum + sub.monthly_total, 0);
       const subscriptionMRR = activeOnDate.reduce((sum, sub) => sum + parseFloat(sub.monthly_total), 0);
       const officialMRR = subscriptionMRR + hardCodedMRR;
       const arr = officialMRR * 12;
-      const payingCustomersCount = activeOnDate.length + 2; // +2 for hard-coded customers
+      const payingCustomersCount = activeOnDate.length + hardcodedSubscriptions.length;
       const averageCustomerValue = payingCustomersCount > 0 ? officialMRR / payingCustomersCount : 0;
 
       // Calculate trial pipeline for this date (subscriptions that were trialing)

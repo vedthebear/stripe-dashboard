@@ -1,5 +1,6 @@
 const { createClient } = require('@supabase/supabase-js');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const hardcodedSubscriptions = require('../../config/hardcodedSubscriptions');
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -234,13 +235,13 @@ async function saveHistoricalMRR() {
 
     if (trialError) throw trialError;
 
-    // Add hard-coded customers
-    const hardCodedMRR = 1500; // Steph (500) + Nick (1000)
+    // Add hard-coded customers from config
+    const hardCodedMRR = hardcodedSubscriptions.reduce((sum, sub) => sum + sub.monthly_total, 0);
 
     // Calculate metrics
     const officialMRR = payingSubscriptions.reduce((sum, sub) => sum + parseFloat(sub.monthly_total), 0) + hardCodedMRR;
     const arr = officialMRR * 12;
-    const payingCustomersCount = payingSubscriptions.length + 2; // +2 for hard-coded customers
+    const payingCustomersCount = payingSubscriptions.length + hardcodedSubscriptions.length;
     const averageCustomerValue = payingCustomersCount > 0 ? officialMRR / payingCustomersCount : 0;
     const trialPipelineMRR = trialSubscriptions.reduce((sum, sub) => sum + parseFloat(sub.monthly_total), 0);
     const activeTrialsCount = trialSubscriptions.length;
@@ -300,31 +301,20 @@ async function saveCustomerRetentionSnapshots() {
       is_counted: sub.is_counted
     }));
 
-    // Add hard-coded customers to retention tracking
-    customerSnapshots.push(
-      {
+    // Add hard-coded customers from config to retention tracking
+    hardcodedSubscriptions.forEach(hardcodedSub => {
+      customerSnapshots.push({
         date: today,
-        stripe_customer_id: 'hardcoded_steph_moccio',
-        stripe_subscription_id: 'hardcoded_steph_moccio_sub',
-        customer_email: 'steph@example.com',
-        customer_name: 'Steph Moccio',
-        subscription_status: 'active',
-        monthly_value: 500.00,
-        is_active: true,
-        is_counted: true
-      },
-      {
-        date: today,
-        stripe_customer_id: 'hardcoded_nick_scott',
-        stripe_subscription_id: 'hardcoded_nick_scott_sub',
-        customer_email: 'nick@example.com',
-        customer_name: 'Nick Scott',
-        subscription_status: 'active',
-        monthly_value: 1000.00,
-        is_active: true,
-        is_counted: true
-      }
-    );
+        stripe_customer_id: hardcodedSub.stripe_subscription_id.replace('manual_', 'hardcoded_'),
+        stripe_subscription_id: hardcodedSub.stripe_subscription_id,
+        customer_email: hardcodedSub.customer_email,
+        customer_name: hardcodedSub.customer_name,
+        subscription_status: hardcodedSub.subscription_status,
+        monthly_value: parseFloat(hardcodedSub.monthly_total),
+        is_active: hardcodedSub.is_active,
+        is_counted: hardcodedSub.is_counted
+      });
+    });
 
     // First, delete any existing snapshots for today to ensure clean data
     const { error: deleteError } = await supabase

@@ -1,5 +1,6 @@
 require('dotenv').config({ path: './.env' });
 const { createClient } = require('@supabase/supabase-js');
+const hardcodedSubscriptions = require('../config/hardcodedSubscriptions');
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -82,31 +83,20 @@ async function backfillPayingCustomerRetention(daysToBackfill = 30) {
         is_counted: sub.is_counted
       }));
 
-      // Add hard-coded paying customers (they've always been active)
-      customerSnapshots.push(
-        {
+      // Add hard-coded paying customers from config (they've always been active)
+      hardcodedSubscriptions.forEach(hardcodedSub => {
+        customerSnapshots.push({
           date: dateString,
-          stripe_customer_id: 'hardcoded_steph_moccio',
-          stripe_subscription_id: 'hardcoded_steph_moccio_sub',
-          customer_email: 'steph@example.com',
-          customer_name: 'Steph Moccio',
-          subscription_status: 'active',
-          monthly_value: 500.00,
-          is_active: true,
-          is_counted: true
-        },
-        {
-          date: dateString,
-          stripe_customer_id: 'hardcoded_nick_scott',
-          stripe_subscription_id: 'hardcoded_nick_scott_sub',
-          customer_email: 'nick@example.com',
-          customer_name: 'Nick Scott',
-          subscription_status: 'active',
-          monthly_value: 1000.00,
-          is_active: true,
-          is_counted: true
-        }
-      );
+          stripe_customer_id: hardcodedSub.stripe_subscription_id.replace('manual_', 'hardcoded_'),
+          stripe_subscription_id: hardcodedSub.stripe_subscription_id,
+          customer_email: hardcodedSub.customer_email,
+          customer_name: hardcodedSub.customer_name,
+          subscription_status: hardcodedSub.subscription_status,
+          monthly_value: parseFloat(hardcodedSub.monthly_total),
+          is_active: hardcodedSub.is_active,
+          is_counted: hardcodedSub.is_counted
+        });
+      });
 
       console.log(`   📊 Processing ${customerSnapshots.length} PAYING customer snapshots...`);
 

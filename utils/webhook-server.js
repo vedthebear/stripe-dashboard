@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-const { handleWebhook } = require('./server/webhooks');
+const { handleWebhook } = require('../server/webhooks');
 require('dotenv').config();
 
 const app = express();

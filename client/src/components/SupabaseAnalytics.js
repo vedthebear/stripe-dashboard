@@ -195,7 +195,7 @@ const SupabaseAnalytics = () => {
                 </tr>
               </thead>
               <tbody>
-                {analyticsData.paying_subscriptions.slice(0, 15).map((subscription, index) => (
+                {analyticsData.paying_subscriptions.map((subscription, index) => (
                   <tr key={subscription.stripe_subscription_id}>
                     <td>
                       <div className="customer-info">
@@ -224,11 +224,6 @@ const SupabaseAnalytics = () => {
                 ))}
               </tbody>
             </table>
-            {analyticsData.paying_subscriptions.length > 15 && (
-              <div className="table-footer">
-                Showing top 15 of {analyticsData.paying_subscriptions.length} paying customers
-              </div>
-            )}
           </div>
         </div>
 
@@ -252,7 +247,7 @@ const SupabaseAnalytics = () => {
                 </tr>
               </thead>
               <tbody>
-                {analyticsData.trial_subscriptions.slice(0, 15).map((trial, index) => (
+                {analyticsData.trial_subscriptions.map((trial, index) => (
                   <tr key={trial.stripe_subscription_id} className={trial.is_expired ? 'expired' : ''}>
                     <td>
                       <div className="customer-info">
@@ -286,11 +281,6 @@ const SupabaseAnalytics = () => {
               <div className="empty-state">
                 <div className="empty-icon">🎉</div>
                 <p>No active trials</p>
-              </div>
-            )}
-            {analyticsData.trial_subscriptions.length > 15 && (
-              <div className="table-footer">
-                Showing top 15 of {analyticsData.trial_subscriptions.length} trial customers
               </div>
             )}
           </div>

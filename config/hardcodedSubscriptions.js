@@ -54,6 +54,10 @@ const hardcodedSubscriptions = [
     monthly_total: 1100,
     date_created: '2024-07-01T00:00:00Z',
     trial_end_date: null,
+    is_active: true,
+    is_counted: true,
+    customer_display: 'Moody Abdul',
+    created_formatted: '7/1/2024'
   },
   {
     stripe_subscription_id: 'manual_speakers',
@@ -63,6 +67,10 @@ const hardcodedSubscriptions = [
     monthly_total: 2500,
     date_created: '2024-07-01T00:00:00Z',
     trial_end_date: null,
+    is_active: true,
+    is_counted: true,
+    customer_display: 'Tim',
+    created_formatted: '7/1/2024'
   }
 ];
 
