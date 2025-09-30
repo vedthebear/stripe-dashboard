@@ -1,4 +1,5 @@
 const { createClient } = require('@supabase/supabase-js');
+const hardcodedSubscriptions = require('../../config/hardcodedSubscriptions');
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -45,43 +46,13 @@ export default async function handler(req, res) {
       throw trialSubsError;
     }
 
-    // Add hard-coded customers not currently in Stripe
-    const hardCodedCustomers = [
-      {
-        stripe_subscription_id: 'manual_steph_moccio',
-        customer_email: 'steph@peerspace.com',
-        customer_name: 'Steph Moccio',
-        subscription_status: 'active',
-        monthly_total: 500,
-        date_created: '2024-09-02T00:00:00Z',
-        trial_end_date: null,
-        is_active: true,
-        is_counted: true,
-        customer_display: 'Steph Moccio',
-        created_formatted: '9/2/2024'
-      },
-      {
-        stripe_subscription_id: 'manual_nick_scott',
-        customer_email: 'nick@dabble.com',
-        customer_name: 'Nick Scott',
-        subscription_status: 'active',
-        monthly_total: 1000,
-        date_created: '2024-07-01T00:00:00Z',
-        trial_end_date: null,
-        is_active: true,
-        is_counted: true,
-        customer_display: 'Nick Scott',
-        created_formatted: '7/1/2024'
-      }
-    ];
-
-    // Combine Stripe data with hard-coded customers
+    // Combine Stripe data with hard-coded customers from config
     const allPayingSubscriptions = [...payingSubscriptions.map(sub => ({
       ...sub,
       monthly_total: parseFloat(sub.monthly_total),
       created_formatted: new Date(sub.date_created).toLocaleDateString(),
       customer_display: sub.customer_name || sub.customer_email || 'Unknown'
-    })), ...hardCodedCustomers];
+    })), ...hardcodedSubscriptions];
 
     // Calculate additional metrics including hard-coded customers
     const totalSubscriptions = allPayingSubscriptions.length + trialSubscriptions.length;
