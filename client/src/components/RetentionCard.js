@@ -2,59 +2,43 @@ import React, { useState, useEffect } from 'react';
 import './RetentionCard.css';
 
 const RetentionCard = () => {
-  const [weeklyData, setWeeklyData] = useState(null);
-  const [monthlyData, setMonthlyData] = useState(null);
+  const [retentionData, setRetentionData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [expandedSection, setExpandedSection] = useState(null); // 'weekly' or 'monthly'
+  const [selectedPeriod, setSelectedPeriod] = useState('3'); // Default to 3-day
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const periods = [
+    { value: '1', label: '1-Day' },
+    { value: '3', label: '3-Day' },
+    { value: '7', label: 'Weekly' },
+    { value: '14', label: 'Bi-Weekly' },
+    { value: '30', label: 'Monthly' }
+  ];
 
   useEffect(() => {
-    fetchRetentionData();
-  }, []);
+    fetchRetentionData(selectedPeriod);
+  }, [selectedPeriod]);
 
-  const fetchRetentionData = async () => {
+  const fetchRetentionData = async (period) => {
     try {
+      setLoading(true);
       const apiUrl = process.env.NODE_ENV === 'production'
         ? ''
         : (process.env.REACT_APP_API_URL || 'http://localhost:5050');
 
-      // Fetch both weekly and monthly retention data in parallel
-      const [weeklyResponse, monthlyResponse] = await Promise.all([
-        fetch(`${apiUrl}/api/retention/weekly`),
-        fetch(`${apiUrl}/api/retention/monthly`)
-      ]);
+      const response = await fetch(`${apiUrl}/api/retention/calculate?period=${period}`);
 
-      if (!weeklyResponse.ok || !monthlyResponse.ok) {
-        throw new Error('Failed to fetch retention data');
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      const weekly = await weeklyResponse.json();
-      const monthly = await monthlyResponse.json();
-
-      setWeeklyData(weekly);
-      setMonthlyData(monthly);
+      const data = await response.json();
+      setRetentionData(data);
       setError(null);
     } catch (error) {
       console.error('Error fetching retention data:', error);
       setError(error.message);
-
-      // Set mock data for demo when API fails
-      setWeeklyData({
-        retention_rate: 92.5,
-        metrics: { churned_customers: 3, previous_period_customers: 40, new_customers: 5 },
-        churn_details: [
-          { customer_name: 'Demo Customer 1', customer_email: 'demo1@example.com', monthly_value: 49.99 },
-          { customer_name: 'Demo Customer 2', customer_email: 'demo2@example.com', monthly_value: 29.99 }
-        ]
-      });
-      setMonthlyData({
-        retention_rate: 88.2,
-        metrics: { churned_customers: 8, previous_period_customers: 68, new_customers: 12 },
-        churn_details: [
-          { customer_name: 'Demo Customer 3', customer_email: 'demo3@example.com', monthly_value: 99.99 },
-          { customer_name: 'Demo Customer 4', customer_email: 'demo4@example.com', monthly_value: 49.99 }
-        ]
-      });
     } finally {
       setLoading(false);
     }
@@ -83,8 +67,9 @@ const RetentionCard = () => {
     return '🚨';
   };
 
-  const toggleExpandedSection = (section) => {
-    setExpandedSection(expandedSection === section ? null : section);
+  const handlePeriodChange = (period) => {
+    setSelectedPeriod(period);
+    setIsExpanded(false); // Collapse when changing periods
   };
 
   if (loading) {
@@ -93,170 +78,193 @@ const RetentionCard = () => {
         <div className="retention-skeleton">
           <div className="skeleton-header"></div>
           <div className="skeleton-metrics"></div>
-          <div className="skeleton-metrics"></div>
         </div>
         <div className="loading-text">Loading retention data...</div>
       </div>
     );
   }
 
+  if (error) {
+    return (
+      <div className="retention-card error">
+        <div className="error-content">
+          <span className="error-icon">⚠️</span>
+          <h3>Error Loading Retention</h3>
+          <p>{error}</p>
+          <button onClick={() => fetchRetentionData(selectedPeriod)} className="retry-button">
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!retentionData) {
+    return (
+      <div className="retention-card">
+        <p>No retention data available</p>
+      </div>
+    );
+  }
+
+  const retentionRate = retentionData.retention_rate || 0;
+  const churned = retentionData.subscription_details?.filter(s => s.status === 'churned') || [];
+  const retained = retentionData.subscription_details?.filter(s => s.status === 'retained') || [];
+
   return (
     <div className="retention-card">
+      {/* Header */}
       <div className="retention-header">
         <h3>🔄 Customer Retention</h3>
-        <div className="retention-subtitle">Weekly & Monthly trends</div>
+        <div className="retention-subtitle">Track subscription retention over time</div>
       </div>
 
-      {error && (
-        <div className="retention-error">
-          <span className="error-icon">⚠️</span>
-          <span>Using demo data - API unavailable</span>
+      {/* Period Toggle */}
+      <div className="period-toggle">
+        {periods.map(period => (
+          <button
+            key={period.value}
+            className={`period-button ${selectedPeriod === period.value ? 'active' : ''}`}
+            onClick={() => handlePeriodChange(period.value)}
+          >
+            {period.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Retention Rate Display */}
+      <div
+        className="retention-rate-display"
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
+        <div className="retention-rate-main">
+          <div
+            className="retention-rate-number"
+            style={{ color: getRetentionColor(retentionRate) }}
+          >
+            {retentionRate.toFixed(1)}%
+          </div>
+          <div className="retention-icon-large">
+            {getRetentionIcon(retentionRate)}
+          </div>
+        </div>
+        <div className="retention-rate-subtitle">
+          {retentionData.metrics.retained_customers} of {retentionData.metrics.previous_period_customers} retained
+          {churned.length > 0 && ` • ${churned.length} churned`}
+        </div>
+        <div className="expand-hint">
+          Click to {isExpanded ? 'hide' : 'show'} details {isExpanded ? '▲' : '▼'}
+        </div>
+      </div>
+
+      {/* Expandable Subscription List */}
+      {isExpanded && (
+        <div className="subscription-details">
+          <div className="details-period">
+            Comparing {retentionData.period_labels.previous} to {retentionData.period_labels.current}
+          </div>
+
+          {/* Churned Customers */}
+          {churned.length > 0 && (
+            <div className="subscription-section">
+              <div className="section-header churned">
+                <span className="section-icon">❌</span>
+                <span className="section-title">Churned ({churned.length})</span>
+                <span className="section-total">{formatCurrency(churned.reduce((sum, s) => sum + s.monthly_value, 0))}</span>
+              </div>
+              <div className="table-container">
+                <table className="analytics-table">
+                  <thead>
+                    <tr>
+                      <th>Customer</th>
+                      <th>Status</th>
+                      <th>Monthly Value</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {churned.map((sub, index) => (
+                      <tr key={index} className="churned-row">
+                        <td>
+                          <div className="customer-info">
+                            <div className="customer-name">{sub.customer_display}</div>
+                            <div className="customer-email">{sub.customer_email}</div>
+                          </div>
+                        </td>
+                        <td>
+                          <span className="status-badge churned">❌ Churned</span>
+                        </td>
+                        <td className="amount churned-amount">
+                          {formatCurrency(sub.monthly_value)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Retained Customers */}
+          {retained.length > 0 && (
+            <div className="subscription-section">
+              <div className="section-header retained">
+                <span className="section-icon">✅</span>
+                <span className="section-title">Retained ({retained.length})</span>
+                <span className="section-total">{formatCurrency(retained.reduce((sum, s) => sum + s.monthly_value, 0))}</span>
+              </div>
+              <div className="table-container">
+                <table className="analytics-table">
+                  <thead>
+                    <tr>
+                      <th>Customer</th>
+                      <th>Status</th>
+                      <th>Monthly Value</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {retained.map((sub, index) => (
+                      <tr key={index} className="retained-row">
+                        <td>
+                          <div className="customer-info">
+                            <div className="customer-name">{sub.customer_display}</div>
+                            <div className="customer-email">{sub.customer_email}</div>
+                          </div>
+                        </td>
+                        <td>
+                          <span className="status-badge retained">✅ Retained</span>
+                        </td>
+                        <td className="amount retained-amount">
+                          {formatCurrency(sub.monthly_value)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Summary Stats */}
+          <div className="retention-summary">
+            <div className="summary-stat">
+              <div className="summary-label">Previous Period</div>
+              <div className="summary-value">{retentionData.metrics.previous_period_customers}</div>
+            </div>
+            <div className="summary-stat success">
+              <div className="summary-label">Retained</div>
+              <div className="summary-value">{retentionData.metrics.retained_customers}</div>
+            </div>
+            <div className="summary-stat danger">
+              <div className="summary-label">Churned</div>
+              <div className="summary-value">{retentionData.metrics.churned_customers}</div>
+            </div>
+            <div className="summary-stat info">
+              <div className="summary-label">New</div>
+              <div className="summary-value">{retentionData.metrics.new_customers}</div>
+            </div>
+          </div>
         </div>
       )}
-
-      <div className="retention-metrics">
-        {/* Weekly Retention */}
-        <div className="retention-metric-card" onClick={() => toggleExpandedSection('weekly')}>
-          <div className="metric-header">
-            <div className="metric-icon">📅</div>
-            <div className="metric-info">
-              <div className="metric-label">Week-over-Week</div>
-              <div className="metric-period">Last 7 days vs previous 7 days</div>
-            </div>
-          </div>
-          <div className="metric-value-container">
-            <div
-              className="retention-rate"
-              style={{ color: getRetentionColor(weeklyData?.retention_rate || 0) }}
-            >
-              {getRetentionIcon(weeklyData?.retention_rate || 0)} {weeklyData?.retention_rate?.toFixed(1) || '0.0'}%
-            </div>
-            <div className="metric-summary">
-              {weeklyData?.metrics?.churned_customers || 0} churned
-              {weeklyData?.metrics?.churned_customers > 0 && (
-                <span className="churn-indicator">
-                  {weeklyData.metrics.churned_customers === 1 ? ' customer' : ' customers'}
-                </span>
-              )}
-            </div>
-          </div>
-          <div className="expand-indicator">
-            {expandedSection === 'weekly' ? '▼' : '▶'}
-          </div>
-        </div>
-
-        {/* Weekly Details */}
-        {expandedSection === 'weekly' && weeklyData && (
-          <div className="retention-details">
-            <div className="details-header">
-              <h4>Weekly Churn Details</h4>
-              <div className="details-stats">
-                Previous: {weeklyData.metrics.previous_period_customers} •
-                Churned: {weeklyData.metrics.churned_customers} •
-                New: {weeklyData.metrics.new_customers}
-              </div>
-            </div>
-            {weeklyData.churn_details.length > 0 ? (
-              <div className="churn-list">
-                {weeklyData.churn_details.slice(0, 5).map((customer, index) => (
-                  <div key={index} className="churn-item">
-                    <div className="customer-info">
-                      <div className="customer-name">{customer.customer_name || 'Unknown'}</div>
-                      <div className="customer-email">{customer.customer_email}</div>
-                    </div>
-                    <div className="churn-value">
-                      {formatCurrency(customer.monthly_value)}
-                    </div>
-                  </div>
-                ))}
-                {weeklyData.churn_details.length > 5 && (
-                  <div className="churn-more">
-                    +{weeklyData.churn_details.length - 5} more customers
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="no-churn">🎉 No customers churned this week!</div>
-            )}
-          </div>
-        )}
-
-        {/* Monthly Retention */}
-        <div className="retention-metric-card" onClick={() => toggleExpandedSection('monthly')}>
-          <div className="metric-header">
-            <div className="metric-icon">📊</div>
-            <div className="metric-info">
-              <div className="metric-label">Month-over-Month</div>
-              <div className="metric-period">This month vs last month</div>
-            </div>
-          </div>
-          <div className="metric-value-container">
-            <div
-              className="retention-rate"
-              style={{ color: getRetentionColor(monthlyData?.retention_rate || 0) }}
-            >
-              {getRetentionIcon(monthlyData?.retention_rate || 0)} {monthlyData?.retention_rate?.toFixed(1) || '0.0'}%
-            </div>
-            <div className="metric-summary">
-              {monthlyData?.metrics?.churned_customers || 0} churned
-              {monthlyData?.metrics?.churned_customers > 0 && (
-                <span className="churn-indicator">
-                  {monthlyData.metrics.churned_customers === 1 ? ' customer' : ' customers'}
-                </span>
-              )}
-            </div>
-          </div>
-          <div className="expand-indicator">
-            {expandedSection === 'monthly' ? '▼' : '▶'}
-          </div>
-        </div>
-
-        {/* Monthly Details */}
-        {expandedSection === 'monthly' && monthlyData && (
-          <div className="retention-details">
-            <div className="details-header">
-              <h4>Monthly Churn Details</h4>
-              <div className="details-stats">
-                Previous: {monthlyData.metrics.previous_period_customers} •
-                Churned: {monthlyData.metrics.churned_customers} •
-                New: {monthlyData.metrics.new_customers}
-              </div>
-            </div>
-            {monthlyData.churn_details.length > 0 ? (
-              <div className="churn-list">
-                {monthlyData.churn_details.slice(0, 5).map((customer, index) => (
-                  <div key={index} className="churn-item">
-                    <div className="customer-info">
-                      <div className="customer-name">{customer.customer_name || 'Unknown'}</div>
-                      <div className="customer-email">{customer.customer_email}</div>
-                    </div>
-                    <div className="churn-value">
-                      {formatCurrency(customer.monthly_value)}
-                    </div>
-                  </div>
-                ))}
-                {monthlyData.churn_details.length > 5 && (
-                  <div className="churn-more">
-                    +{monthlyData.churn_details.length - 5} more customers
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="no-churn">🎉 No customers churned this month!</div>
-            )}
-          </div>
-        )}
-      </div>
-
-      <div className="retention-footer">
-        <div className="data-source">
-          {error ? (
-            <span className="demo-data">⚠️ Demo data - API unavailable</span>
-          ) : (
-            <span className="live-data">✅ Live retention analysis</span>
-          )}
-        </div>
-      </div>
     </div>
   );
 };
