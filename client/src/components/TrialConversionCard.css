@@ -1,5 +1,5 @@
-/* Retention Card Component */
-.retention-card {
+/* Trial Conversion Card Component */
+.trial-conversion-card {
   background: white;
   border-radius: 16px;
   padding: 28px;
@@ -11,17 +11,17 @@
   transition: all 0.3s ease;
 }
 
-.retention-card:hover {
+.trial-conversion-card:hover {
   box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
 }
 
-.retention-header {
+.conversion-header {
   display: flex;
   flex-direction: column;
   margin-bottom: 24px;
 }
 
-.retention-header h3 {
+.conversion-header h3 {
   font-size: 1.5rem;
   font-weight: 600;
   color: #1f2937;
@@ -31,7 +31,7 @@
   gap: 10px;
 }
 
-.retention-subtitle {
+.conversion-subtitle {
   font-size: 0.9rem;
   color: #6b7280;
   margin-top: 6px;
@@ -74,8 +74,8 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-/* Retention Rate Display */
-.retention-rate-display {
+/* Conversion Rate Display */
+.conversion-rate-display {
   text-align: center;
   padding: 32px 24px;
   background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
@@ -86,14 +86,14 @@
   margin-bottom: 20px;
 }
 
-.retention-rate-display:hover {
+.conversion-rate-display:hover {
   border-color: #3b82f6;
   background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
   transform: translateY(-2px);
   box-shadow: 0 8px 16px rgba(59, 130, 246, 0.1);
 }
 
-.retention-rate-main {
+.conversion-rate-main {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -101,20 +101,20 @@
   margin-bottom: 12px;
 }
 
-.retention-rate-number {
+.conversion-rate-number {
   font-size: 4.5rem;
   font-weight: 800;
   line-height: 1;
   letter-spacing: -0.02em;
 }
 
-.retention-icon-large {
+.conversion-icon-large {
   font-size: 3rem;
   line-height: 1;
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
 }
 
-.retention-rate-subtitle {
+.conversion-rate-subtitle {
   font-size: 1rem;
   color: #6b7280;
   font-weight: 500;
@@ -128,8 +128,8 @@
   font-weight: 500;
 }
 
-/* Subscription Details */
-.subscription-details {
+/* Trial Details */
+.trial-details {
   margin-top: 4px;
   animation: slideDown 0.3s ease;
 }
@@ -153,8 +153,8 @@
   font-weight: 500;
 }
 
-/* Subscription Section */
-.subscription-section {
+/* Trial Section */
+.trial-section {
   margin-bottom: 24px;
 }
 
@@ -168,14 +168,14 @@
   font-weight: 600;
 }
 
-.section-header.churned {
-  background: rgba(220, 38, 38, 0.1);
-  border: 1px solid rgba(220, 38, 38, 0.2);
-}
-
-.section-header.retained {
+.section-header.converted {
   background: rgba(22, 163, 74, 0.1);
   border: 1px solid rgba(22, 163, 74, 0.2);
+}
+
+.section-header.unconverted {
+  background: rgba(251, 191, 36, 0.1);
+  border: 1px solid rgba(251, 191, 36, 0.2);
 }
 
 .section-icon {
@@ -189,9 +189,9 @@
 }
 
 .section-total {
-  font-size: 1rem;
-  font-weight: 700;
-  color: #1f2937;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #6b7280;
 }
 
 /* Table Container */
@@ -212,6 +212,9 @@
 .analytics-table thead {
   background: #f9fafb;
   border-bottom: 2px solid #e5e7eb;
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .analytics-table th {
@@ -270,16 +273,16 @@
   white-space: nowrap;
 }
 
-.status-badge.churned {
-  background: rgba(220, 38, 38, 0.1);
-  color: #dc2626;
-  border: 1px solid rgba(220, 38, 38, 0.2);
-}
-
-.status-badge.retained {
+.status-badge.converted {
   background: rgba(22, 163, 74, 0.1);
   color: #16a34a;
   border: 1px solid rgba(22, 163, 74, 0.2);
+}
+
+.status-badge.unconverted {
+  background: rgba(251, 191, 36, 0.1);
+  color: #d97706;
+  border: 1px solid rgba(251, 191, 36, 0.2);
 }
 
 .amount {
@@ -288,16 +291,21 @@
   font-size: 1rem;
 }
 
-.churned-amount {
-  color: #dc2626;
-}
-
-.retained-amount {
+.converted-amount {
   color: #16a34a;
 }
 
-/* Retention Summary */
-.retention-summary {
+.unconverted-amount {
+  color: #d97706;
+}
+
+.date {
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+/* Conversion Summary */
+.conversion-summary {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 12px;
@@ -329,13 +337,13 @@
   color: #16a34a;
 }
 
-.summary-stat.danger {
-  background: rgba(220, 38, 38, 0.05);
-  border-color: rgba(220, 38, 38, 0.2);
+.summary-stat.warning {
+  background: rgba(251, 191, 36, 0.05);
+  border-color: rgba(251, 191, 36, 0.2);
 }
 
-.summary-stat.danger .summary-value {
-  color: #dc2626;
+.summary-stat.warning .summary-value {
+  color: #d97706;
 }
 
 .summary-stat.info {
@@ -363,14 +371,14 @@
 }
 
 /* Loading states */
-.retention-card.loading {
+.trial-conversion-card.loading {
   align-items: center;
   justify-content: center;
   gap: 16px;
   min-height: 300px;
 }
 
-.retention-skeleton {
+.conversion-skeleton {
   width: 100%;
   max-width: 300px;
 }
@@ -406,7 +414,7 @@
 }
 
 /* Error states */
-.retention-card.error {
+.trial-conversion-card.error {
   align-items: center;
   justify-content: center;
   min-height: 300px;
@@ -486,15 +494,15 @@
 
 /* Responsive design */
 @media (max-width: 768px) {
-  .retention-card {
+  .trial-conversion-card {
     padding: 20px;
   }
 
-  .retention-rate-number {
+  .conversion-rate-number {
     font-size: 3.5rem;
   }
 
-  .retention-icon-large {
+  .conversion-icon-large {
     font-size: 2.5rem;
   }
 
@@ -507,7 +515,7 @@
     padding: 8px 12px;
   }
 
-  .retention-summary {
+  .conversion-summary {
     grid-template-columns: repeat(2, 1fr);
   }
 

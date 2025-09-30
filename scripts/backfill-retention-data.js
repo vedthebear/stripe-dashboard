@@ -30,7 +30,7 @@ async function backfillRetentionData(daysToBackfill = 14) {
     console.log('\n📋 Fetching current subscription data...');
     const { data: allSubscriptions, error: subscriptionsError } = await supabase
       .from('subscriptions')
-      .select('stripe_customer_id, stripe_subscription_id, customer_email, customer_name, subscription_status, monthly_total, is_active, is_counted, date_created, date_canceled');
+      .select('stripe_customer_id, stripe_subscription_id, customer_email, customer_name, subscription_status, monthly_total, is_active, is_counted, is_trial_counted, date_created, date_canceled');
 
     if (subscriptionsError) {
       throw subscriptionsError;
@@ -83,7 +83,7 @@ async function backfillRetentionData(daysToBackfill = 14) {
         return true;
       });
 
-      // Prepare customer snapshots for this date
+      // Prepare customer snapshots for this date (excluding hardcoded subscriptions)
       const customerSnapshots = activeOnDate.map(sub => ({
         date: dateString,
         stripe_customer_id: sub.stripe_customer_id,
@@ -93,23 +93,9 @@ async function backfillRetentionData(daysToBackfill = 14) {
         subscription_status: sub.subscription_status,
         monthly_value: parseFloat(sub.monthly_total),
         is_active: sub.is_active,
-        is_counted: sub.is_counted
+        is_counted: sub.is_counted,
+        is_trial_counted: sub.is_trial_counted || false
       }));
-
-      // Add hard-coded customers from config to retention tracking (they've always been active)
-      hardcodedSubscriptions.forEach(hardcodedSub => {
-        customerSnapshots.push({
-          date: dateString,
-          stripe_customer_id: hardcodedSub.stripe_subscription_id.replace('manual_', 'hardcoded_'),
-          stripe_subscription_id: hardcodedSub.stripe_subscription_id,
-          customer_email: hardcodedSub.customer_email,
-          customer_name: hardcodedSub.customer_name,
-          subscription_status: hardcodedSub.subscription_status,
-          monthly_value: parseFloat(hardcodedSub.monthly_total),
-          is_active: hardcodedSub.is_active,
-          is_counted: hardcodedSub.is_counted
-        });
-      });
 
       console.log(`   📊 Processing ${customerSnapshots.length} customer snapshots...`);
 

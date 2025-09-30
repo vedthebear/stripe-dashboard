@@ -85,6 +85,35 @@ const RetentionCard = () => {
   }
 
   if (error) {
+    // Check if error indicates no historical data available
+    if (error.includes('no data') || error.includes('No snapshots found') ||
+        (retentionData && retentionData.metrics && retentionData.metrics.previous_period_customers === 0)) {
+      return (
+        <div className="retention-card">
+          <div className="retention-header">
+            <h3>🔄 Customer Retention</h3>
+            <div className="retention-subtitle">Track subscription retention over time</div>
+          </div>
+          <div className="period-toggle">
+            {periods.map(period => (
+              <button
+                key={period.value}
+                className={`period-button ${selectedPeriod === period.value ? 'active' : ''}`}
+                onClick={() => handlePeriodChange(period.value)}
+              >
+                {period.label}
+              </button>
+            ))}
+          </div>
+          <div className="no-data-message">
+            <div className="no-data-icon">📊</div>
+            <div className="no-data-title">No Data Yet</div>
+            <div className="no-data-subtitle">Backfill in Progress<br />(I will get to it shortly I swear)</div>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="retention-card error">
         <div className="error-content">
@@ -103,6 +132,34 @@ const RetentionCard = () => {
     return (
       <div className="retention-card">
         <p>No retention data available</p>
+      </div>
+    );
+  }
+
+  // Check if we have no historical data for the selected period
+  if (retentionData.metrics && retentionData.metrics.previous_period_customers === 0) {
+    return (
+      <div className="retention-card">
+        <div className="retention-header">
+          <h3>🔄 Customer Retention</h3>
+          <div className="retention-subtitle">Track subscription retention over time</div>
+        </div>
+        <div className="period-toggle">
+          {periods.map(period => (
+            <button
+              key={period.value}
+              className={`period-button ${selectedPeriod === period.value ? 'active' : ''}`}
+              onClick={() => handlePeriodChange(period.value)}
+            >
+              {period.label}
+            </button>
+          ))}
+        </div>
+        <div className="no-data-message">
+          <div className="no-data-icon">📊</div>
+          <div className="no-data-title">No Data Yet</div>
+          <div className="no-data-subtitle">Backfill in Progress<br />(I will get to it shortly I swear)</div>
+        </div>
       </div>
     );
   }

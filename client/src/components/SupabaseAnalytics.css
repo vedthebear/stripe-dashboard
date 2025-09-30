@@ -512,23 +512,36 @@
   }
 }
 
-/* Analytics Charts Section - Side by Side Layout */
+/* Analytics Charts Section - Updated Layout */
 .analytics-charts-section {
   margin: 40px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Trial Conversion and Retention Row */
+.conversion-retention-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 24px;
   align-items: start;
 }
 
-.chart-container,
+.trial-conversion-container,
 .retention-container {
   min-height: 280px;
 }
 
+/* MRR Chart - Full Width Below */
+.chart-container-full {
+  min-height: 400px;
+  width: 100%;
+}
+
 /* Responsive design for charts section */
 @media (max-width: 1200px) {
-  .analytics-charts-section {
+  .conversion-retention-row {
     grid-template-columns: 1fr;
     gap: 20px;
   }

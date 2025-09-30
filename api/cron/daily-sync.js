@@ -282,13 +282,13 @@ async function saveCustomerRetentionSnapshots() {
     // Get all current subscription data for retention tracking
     const { data: allSubscriptions, error: subscriptionsError } = await supabase
       .from('subscriptions')
-      .select('stripe_customer_id, stripe_subscription_id, customer_email, customer_name, subscription_status, monthly_total, is_active, is_counted');
+      .select('stripe_customer_id, stripe_subscription_id, customer_email, customer_name, subscription_status, monthly_total, is_active, is_counted, is_trial_counted');
 
     if (subscriptionsError) throw subscriptionsError;
 
     const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
 
-    // Prepare customer snapshots
+    // Prepare customer snapshots (excluding hardcoded subscriptions)
     const customerSnapshots = allSubscriptions.map(sub => ({
       date: today,
       stripe_customer_id: sub.stripe_customer_id,
@@ -298,23 +298,9 @@ async function saveCustomerRetentionSnapshots() {
       subscription_status: sub.subscription_status,
       monthly_value: parseFloat(sub.monthly_total),
       is_active: sub.is_active,
-      is_counted: sub.is_counted
+      is_counted: sub.is_counted,
+      is_trial_counted: sub.is_trial_counted || false
     }));
-
-    // Add hard-coded customers from config to retention tracking
-    hardcodedSubscriptions.forEach(hardcodedSub => {
-      customerSnapshots.push({
-        date: today,
-        stripe_customer_id: hardcodedSub.stripe_subscription_id.replace('manual_', 'hardcoded_'),
-        stripe_subscription_id: hardcodedSub.stripe_subscription_id,
-        customer_email: hardcodedSub.customer_email,
-        customer_name: hardcodedSub.customer_name,
-        subscription_status: hardcodedSub.subscription_status,
-        monthly_value: parseFloat(hardcodedSub.monthly_total),
-        is_active: hardcodedSub.is_active,
-        is_counted: hardcodedSub.is_counted
-      });
-    });
 
     // First, delete any existing snapshots for today to ensure clean data
     const { error: deleteError } = await supabase

@@ -5,10 +5,32 @@ const supabase = createClient(
   process.env.SUPABASE_ANON_KEY
 );
 
-function getDaysAgo(days) {
-  const date = new Date();
-  date.setDate(date.getDate() - days);
-  return date.toISOString().split('T')[0];
+function getPacificDate() {
+  // Get current date in Pacific timezone (America/Los_Angeles)
+  const now = new Date();
+  const pacificDateStr = now.toLocaleString('en-US', {
+    timeZone: 'America/Los_Angeles',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  });
+
+  // Parse MM/DD/YYYY format and convert to YYYY-MM-DD
+  const [month, day, year] = pacificDateStr.split(/[,/\s]+/).filter(Boolean);
+  return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+}
+
+function getPacificDateDaysAgo(days) {
+  // Get a date X days ago in Pacific timezone
+  const now = new Date();
+  const pacificDate = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
+  pacificDate.setDate(pacificDate.getDate() - days);
+
+  const year = pacificDate.getFullYear();
+  const month = String(pacificDate.getMonth() + 1).padStart(2, '0');
+  const day = String(pacificDate.getDate()).padStart(2, '0');
+
+  return `${year}-${month}-${day}`;
 }
 
 export default async function handler(req, res) {
@@ -36,9 +58,8 @@ export default async function handler(req, res) {
       });
     }
 
-    const today = new Date();
-    const todayStr = today.toISOString().split('T')[0];
-    const previousDateStr = getDaysAgo(days);
+    const todayStr = getPacificDate();
+    const previousDateStr = getPacificDateDaysAgo(days);
 
     console.log(`📈 [${requestId}] Calculating ${days}-day retention:`);
     console.log(`   Today: ${todayStr}`);

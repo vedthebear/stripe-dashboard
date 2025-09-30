@@ -71,6 +71,19 @@ const hardcodedSubscriptions = [
     is_counted: true,
     customer_display: 'Tim',
     created_formatted: '7/1/2024'
+  },
+  {
+    stripe_subscription_id: 'ken',
+    customer_email: 'michael@peerspace.com',
+    customer_name: 'Michael',
+    subscription_status: 'active',
+    monthly_total: 1000,
+    date_created: '2024-07-01T00:00:00Z',
+    trial_end_date: null,
+    is_active: true,
+    is_counted: true,
+    customer_display: 'Michael',
+    created_formatted: '7/1/2024'
   }
 ];
 
