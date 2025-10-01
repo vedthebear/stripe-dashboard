@@ -533,10 +533,16 @@
   min-height: 280px;
 }
 
-/* MRR Chart - Full Width Below */
-.chart-container-full {
-  min-height: 400px;
-  width: 100%;
+/* Charts Row - Side by Side */
+.charts-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-top: 24px;
+}
+
+.chart-container-half {
+  min-height: 350px;
 }
 
 /* Responsive design for charts section */
@@ -544,5 +550,9 @@
   .conversion-retention-row {
     grid-template-columns: 1fr;
     gap: 20px;
+  }
+
+  .charts-row {
+    grid-template-columns: 1fr;
   }
 }

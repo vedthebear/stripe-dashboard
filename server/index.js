@@ -1671,6 +1671,58 @@ app.get('/api/historical/mrr', async (req, res) => {
   }
 });
 
+// Cumulative Revenue endpoint
+app.get('/api/historical/cumulative-revenue', async (req, res) => {
+  const requestId = Math.random().toString(36).substr(2, 9);
+  console.log(`💰 [${requestId}] Cumulative Revenue API request`);
+
+  try {
+    if (!supabase) {
+      return res.status(500).json({
+        error: 'Supabase not configured',
+        requestId,
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Get historical MRR data and calculate cumulative revenue
+    const { data: historicalData, error: histError } = await supabase
+      .from('historical_mrr')
+      .select('date, official_mrr')
+      .order('date', { ascending: true });
+
+    if (histError) {
+      console.error(`❌ [${requestId}] Error fetching historical data:`, histError);
+      throw histError;
+    }
+
+    // Calculate cumulative revenue (sum of daily revenue = MRR/30)
+    let cumulativeRevenue = 0;
+    const cumulativeData = historicalData.map(record => {
+      const dailyRevenue = record.official_mrr / 30;
+      cumulativeRevenue += dailyRevenue;
+      return {
+        date: record.date,
+        cumulative_revenue: Math.round(cumulativeRevenue),
+        daily_revenue: Math.round(dailyRevenue)
+      };
+    });
+
+    console.log(`✅ [${requestId}] Cumulative revenue data sent: ${cumulativeData.length} records`);
+
+    res.json(cumulativeData || []);
+
+  } catch (error) {
+    console.error(`❌ [${requestId}] Cumulative Revenue API error:`, error.message);
+    res.status(500).json({
+      error: 'Failed to fetch cumulative revenue data',
+      details: error.message,
+      requestId,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 // Enhanced health check endpoint
 app.get('/api/health', async (req, res) => {
   const healthCheck = {

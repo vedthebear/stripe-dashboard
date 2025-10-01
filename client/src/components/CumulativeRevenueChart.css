@@ -1,0 +1,198 @@
+/* Cumulative Revenue Chart Component */
+.cumulative-revenue-chart {
+  background: white;
+  border-radius: 16px;
+  padding: 28px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e5e7eb;
+  transition: all 0.3s ease;
+}
+
+.cumulative-revenue-chart:hover {
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
+}
+
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+}
+
+.chart-title {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.chart-icon {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.chart-title h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0;
+}
+
+.chart-subtitle {
+  font-size: 0.9rem;
+  color: #6b7280;
+  margin: 4px 0 0 0;
+}
+
+.growth-indicator {
+  text-align: right;
+}
+
+.growth-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 1.1rem;
+  margin-bottom: 4px;
+}
+
+.growth-badge.positive {
+  background: rgba(59, 130, 246, 0.1);
+  color: #3B82F6;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.growth-percent {
+  font-size: 0.85rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.chart-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 20px 0;
+}
+
+.growth-chart-svg {
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.05));
+}
+
+.growth-line {
+  transition: stroke-width 0.3s ease;
+}
+
+.growth-line:hover {
+  stroke-width: 4;
+}
+
+.chart-footer {
+  display: flex;
+  justify-content: center;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.data-source {
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+.live-data {
+  color: #22c55e;
+  font-weight: 600;
+}
+
+.error-notice {
+  color: #f59e0b;
+  font-weight: 600;
+}
+
+/* Loading States */
+.cumulative-chart-loading {
+  background: white;
+  border-radius: 16px;
+  padding: 60px 28px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.chart-skeleton {
+  width: 100%;
+  max-width: 400px;
+  height: 200px;
+  background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+  border-radius: 8px;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.loading-text {
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+/* Empty State */
+.cumulative-chart-empty {
+  background: white;
+  border-radius: 16px;
+  padding: 60px 28px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e5e7eb;
+  text-align: center;
+}
+
+.empty-icon {
+  font-size: 4rem;
+  margin-bottom: 16px;
+  opacity: 0.6;
+}
+
+.empty-text {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 8px;
+}
+
+.empty-subtitle {
+  font-size: 0.9rem;
+  color: #6b7280;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .cumulative-revenue-chart {
+    padding: 20px;
+  }
+
+  .chart-header {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .growth-indicator {
+    text-align: left;
+  }
+
+  .chart-icon {
+    font-size: 1.5rem;
+  }
+
+  .chart-title h3 {
+    font-size: 1.2rem;
+  }
+}
