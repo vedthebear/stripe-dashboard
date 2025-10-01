@@ -84,19 +84,6 @@ const hardcodedSubscriptions = [
     is_counted: true,
     customer_display: 'Ken Colton',
     created_formatted: '7/1/2024'
-  },
-  {
-    stripe_subscription_id: 'guy',
-    customer_email: 'guy@blee.com',
-    customer_name: 'Manuel',
-    subscription_status: 'active',
-    monthly_total: 700,
-    date_created: '2024-07-01T00:00:00Z',
-    trial_end_date: null,
-    is_active: true,
-    is_counted: true,
-    customer_display: 'Guy',
-    created_formatted: '7/1/2024'
   }
 ];
 
