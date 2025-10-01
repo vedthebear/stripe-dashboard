@@ -7,6 +7,7 @@ const RetentionCard = () => {
   const [error, setError] = useState(null);
   const [selectedPeriod, setSelectedPeriod] = useState('3'); // Default to 3-day
   const [isExpanded, setIsExpanded] = useState(false);
+  const [ignoredSubscriptions, setIgnoredSubscriptions] = useState(new Set());
 
   const periods = [
     { value: '1', label: '1-Day' },
@@ -70,6 +71,19 @@ const RetentionCard = () => {
   const handlePeriodChange = (period) => {
     setSelectedPeriod(period);
     setIsExpanded(false); // Collapse when changing periods
+    setIgnoredSubscriptions(new Set()); // Reset ignored subscriptions when changing periods
+  };
+
+  const toggleIgnoreSubscription = (subscriptionId) => {
+    setIgnoredSubscriptions(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(subscriptionId)) {
+        newSet.delete(subscriptionId);
+      } else {
+        newSet.add(subscriptionId);
+      }
+      return newSet;
+    });
   };
 
   if (loading) {
@@ -164,9 +178,12 @@ const RetentionCard = () => {
     );
   }
 
-  const retentionRate = retentionData.retention_rate || 0;
-  const churned = retentionData.subscription_details?.filter(s => s.status === 'churned') || [];
-  const retained = retentionData.subscription_details?.filter(s => s.status === 'retained') || [];
+  // Filter out ignored subscriptions and recalculate metrics
+  const retained = retentionData.subscription_details?.filter(s => s.status === 'retained' && !ignoredSubscriptions.has(s.stripe_subscription_id)) || [];
+  const churned = retentionData.subscription_details?.filter(s => s.status === 'churned' && !ignoredSubscriptions.has(s.stripe_subscription_id)) || [];
+
+  const adjustedTotalSubscriptions = retained.length + churned.length;
+  const adjustedRetentionRate = adjustedTotalSubscriptions > 0 ? (retained.length / adjustedTotalSubscriptions) * 100 : 0;
 
   return (
     <div className="retention-card">
@@ -197,16 +214,16 @@ const RetentionCard = () => {
         <div className="retention-rate-main">
           <div
             className="retention-rate-number"
-            style={{ color: getRetentionColor(retentionRate) }}
+            style={{ color: getRetentionColor(adjustedRetentionRate) }}
           >
-            {retentionRate.toFixed(1)}%
+            {adjustedRetentionRate.toFixed(1)}%
           </div>
           <div className="retention-icon-large">
-            {getRetentionIcon(retentionRate)}
+            {getRetentionIcon(adjustedRetentionRate)}
           </div>
         </div>
         <div className="retention-rate-subtitle">
-          {retentionData.metrics.retained_customers} of {retentionData.metrics.previous_period_customers} retained
+          {retained.length} of {adjustedTotalSubscriptions} retained
           {churned.length > 0 && ` • ${churned.length} churned`}
         </div>
         <div className="expand-hint">
@@ -236,25 +253,39 @@ const RetentionCard = () => {
                       <th>Customer</th>
                       <th>Status</th>
                       <th>Monthly Value</th>
+                      <th>Include</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {churned.map((sub, index) => (
-                      <tr key={index} className="churned-row">
-                        <td>
-                          <div className="customer-info">
-                            <div className="customer-name">{sub.customer_display}</div>
-                            <div className="customer-email">{sub.customer_email}</div>
-                          </div>
-                        </td>
-                        <td>
-                          <span className="status-badge churned">❌ Churned</span>
-                        </td>
-                        <td className="amount churned-amount">
-                          {formatCurrency(sub.monthly_value)}
-                        </td>
-                      </tr>
-                    ))}
+                    {retentionData.subscription_details?.filter(s => s.status === 'churned').map((sub, index) => {
+                      const isIgnored = ignoredSubscriptions.has(sub.stripe_subscription_id);
+                      return (
+                        <tr key={index} className={`churned-row ${isIgnored ? 'ignored-row' : ''}`}>
+                          <td>
+                            <div className="customer-info">
+                              <div className="customer-name">{sub.customer_display}</div>
+                              <div className="customer-email">{sub.customer_email}</div>
+                            </div>
+                          </td>
+                          <td>
+                            <span className="status-badge churned">❌ Churned</span>
+                          </td>
+                          <td className="amount churned-amount">
+                            {formatCurrency(sub.monthly_value)}
+                          </td>
+                          <td>
+                            <label className="toggle-switch">
+                              <input
+                                type="checkbox"
+                                checked={!isIgnored}
+                                onChange={() => toggleIgnoreSubscription(sub.stripe_subscription_id)}
+                              />
+                              <span className="toggle-slider"></span>
+                            </label>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -276,25 +307,39 @@ const RetentionCard = () => {
                       <th>Customer</th>
                       <th>Status</th>
                       <th>Monthly Value</th>
+                      <th>Include</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {retained.map((sub, index) => (
-                      <tr key={index} className="retained-row">
-                        <td>
-                          <div className="customer-info">
-                            <div className="customer-name">{sub.customer_display}</div>
-                            <div className="customer-email">{sub.customer_email}</div>
-                          </div>
-                        </td>
-                        <td>
-                          <span className="status-badge retained">✅ Retained</span>
-                        </td>
-                        <td className="amount retained-amount">
-                          {formatCurrency(sub.monthly_value)}
-                        </td>
-                      </tr>
-                    ))}
+                    {retentionData.subscription_details?.filter(s => s.status === 'retained').map((sub, index) => {
+                      const isIgnored = ignoredSubscriptions.has(sub.stripe_subscription_id);
+                      return (
+                        <tr key={index} className={`retained-row ${isIgnored ? 'ignored-row' : ''}`}>
+                          <td>
+                            <div className="customer-info">
+                              <div className="customer-name">{sub.customer_display}</div>
+                              <div className="customer-email">{sub.customer_email}</div>
+                            </div>
+                          </td>
+                          <td>
+                            <span className="status-badge retained">✅ Retained</span>
+                          </td>
+                          <td className="amount retained-amount">
+                            {formatCurrency(sub.monthly_value)}
+                          </td>
+                          <td>
+                            <label className="toggle-switch">
+                              <input
+                                type="checkbox"
+                                checked={!isIgnored}
+                                onChange={() => toggleIgnoreSubscription(sub.stripe_subscription_id)}
+                              />
+                              <span className="toggle-slider"></span>
+                            </label>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -305,19 +350,19 @@ const RetentionCard = () => {
           <div className="retention-summary">
             <div className="summary-stat">
               <div className="summary-label">Previous Period</div>
-              <div className="summary-value">{retentionData.metrics.previous_period_customers}</div>
+              <div className="summary-value">{adjustedTotalSubscriptions}</div>
             </div>
             <div className="summary-stat success">
               <div className="summary-label">Retained</div>
-              <div className="summary-value">{retentionData.metrics.retained_customers}</div>
+              <div className="summary-value">{retained.length}</div>
             </div>
             <div className="summary-stat danger">
               <div className="summary-label">Churned</div>
-              <div className="summary-value">{retentionData.metrics.churned_customers}</div>
+              <div className="summary-value">{churned.length}</div>
             </div>
             <div className="summary-stat info">
-              <div className="summary-label">New</div>
-              <div className="summary-value">{retentionData.metrics.new_customers}</div>
+              <div className="summary-label">Retention Rate</div>
+              <div className="summary-value">{adjustedRetentionRate.toFixed(0)}%</div>
             </div>
           </div>
         </div>

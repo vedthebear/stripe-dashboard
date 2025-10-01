@@ -1257,65 +1257,66 @@ app.get('/api/retention/calculate', async (req, res) => {
     console.log(`   Today: ${todayStr}`);
     console.log(`   ${days} days ago: ${previousDateStr}`);
 
-    // Get paying customers from previous date snapshot
-    const { data: previousCustomers, error: previousError } = await supabase
+    // Step 1: Get all subscriptions that were is_counted=true exactly X days ago
+    const { data: previousSubscriptions, error: previousError } = await supabase
       .from('customer_retention_snapshots')
-      .select('stripe_customer_id, customer_email, customer_name, monthly_value, subscription_status, stripe_subscription_id')
+      .select('stripe_subscription_id, customer_email, customer_name, monthly_value, stripe_customer_id')
       .eq('date', previousDateStr)
-      .eq('is_counted', true)
-      .neq('subscription_status', 'trialing');
+      .eq('is_counted', true);
 
     if (previousError) {
-      console.error(`❌ [${requestId}] Error fetching previous customers:`, previousError);
+      console.error(`❌ [${requestId}] Error fetching previous subscriptions:`, previousError);
       throw previousError;
     }
 
-    // Get paying customers from today's snapshot
-    const { data: todayCustomers, error: todayError } = await supabase
+    // Step 2: Get all subscriptions that are is_counted=true today (most recent data)
+    const { data: todaySubscriptions, error: todayError } = await supabase
       .from('customer_retention_snapshots')
-      .select('stripe_customer_id, customer_email, customer_name, monthly_value, subscription_status, stripe_subscription_id')
+      .select('stripe_subscription_id')
       .eq('date', todayStr)
-      .eq('is_counted', true)
-      .neq('subscription_status', 'trialing');
+      .eq('is_counted', true);
 
     if (todayError) {
-      console.error(`❌ [${requestId}] Error fetching today's customers:`, todayError);
+      console.error(`❌ [${requestId}] Error fetching today subscriptions:`, todayError);
       throw todayError;
     }
 
-    // Create sets for comparison
-    const todayCustomerIds = new Set(todayCustomers.map(c => c.stripe_customer_id));
-    const previousCustomerIds = new Set(previousCustomers.map(c => c.stripe_customer_id));
+    // Step 3: Create a set of today's is_counted subscription IDs for fast lookup
+    const todaySubscriptionIds = new Set(todaySubscriptions.map(s => s.stripe_subscription_id));
 
-    // Calculate retention metrics
-    const retainedCustomerIds = [...previousCustomerIds].filter(id => todayCustomerIds.has(id));
-    const churnedCustomerIds = [...previousCustomerIds].filter(id => !todayCustomerIds.has(id));
-    const newCustomerIds = [...todayCustomers].filter(c => !previousCustomerIds.has(c.stripe_customer_id));
+    // Step 4: Check each previous subscription - if it's still is_counted today, it's retained
+    const retained = [];
+    const churned = [];
 
-    const previousCount = previousCustomerIds.size;
-    const todayCount = todayCustomerIds.size;
-    const retainedCount = retainedCustomerIds.length;
-    const churnedCount = churnedCustomerIds.length;
-    const newCount = newCustomerIds.length;
+    for (const sub of previousSubscriptions) {
+      const subscriptionDetail = {
+        stripe_subscription_id: sub.stripe_subscription_id,
+        stripe_customer_id: sub.stripe_customer_id,
+        customer_email: sub.customer_email,
+        customer_name: sub.customer_name,
+        customer_display: sub.customer_name || sub.customer_email || 'Unknown',
+        monthly_value: parseFloat(sub.monthly_value)
+      };
+
+      if (todaySubscriptionIds.has(sub.stripe_subscription_id)) {
+        subscriptionDetail.status = 'retained';
+        retained.push(subscriptionDetail);
+      } else {
+        subscriptionDetail.status = 'churned';
+        churned.push(subscriptionDetail);
+      }
+    }
+
+    const previousCount = previousSubscriptions.length;
+    const retainedCount = retained.length;
+    const churnedCount = churned.length;
+    const todayCount = todaySubscriptionIds.size;
+    const newCount = todayCount - retainedCount; // New = today's total - retained from previous
 
     const retentionRate = previousCount > 0 ? (retainedCount / previousCount) * 100 : 0;
 
-    // Create detailed subscription list with status
-    const subscriptionDetails = previousCustomers.map(customer => {
-      const isRetained = todayCustomerIds.has(customer.stripe_customer_id);
-      return {
-        stripe_subscription_id: customer.stripe_subscription_id,
-        stripe_customer_id: customer.stripe_customer_id,
-        customer_email: customer.customer_email,
-        customer_name: customer.customer_name,
-        monthly_value: parseFloat(customer.monthly_value),
-        status: isRetained ? 'retained' : 'churned',
-        customer_display: customer.customer_name || customer.customer_email || 'Unknown'
-      };
-    });
-
-    // Sort: churned first, then by monthly value descending
-    subscriptionDetails.sort((a, b) => {
+    // Combine and sort: churned first, then by monthly value descending
+    const subscriptionDetails = [...churned, ...retained].sort((a, b) => {
       if (a.status === 'churned' && b.status === 'retained') return -1;
       if (a.status === 'retained' && b.status === 'churned') return 1;
       return b.monthly_value - a.monthly_value;
@@ -1342,7 +1343,7 @@ app.get('/api/retention/calculate', async (req, res) => {
     };
 
     console.log(`✅ [${requestId}] ${days}-day retention calculated: ${retentionRate.toFixed(2)}% retention rate`);
-    console.log(`   ${days} days ago (${previousDateStr}): ${previousCount} customers, Today (${todayStr}): ${todayCount} customers`);
+    console.log(`   ${days} days ago (${previousDateStr}): ${previousCount} subscriptions, Today (${todayStr}): ${todayCount} subscriptions`);
     console.log(`   Retained: ${retainedCount}, Churned: ${churnedCount}, New: ${newCount}`);
 
     res.json(responseData);
@@ -1426,9 +1427,9 @@ app.get('/api/trial-conversion/calculate', async (req, res) => {
     }
 
     // Find all distinct subscription_ids where is_trial_counted = true in the last x+1 days
-    const { data: trialSnapshots, error: trialError } = await supabase
+    const { data: trialSnapshots, error: trialError} = await supabase
       .from('customer_retention_snapshots')
-      .select('stripe_subscription_id, customer_email, customer_name, monthly_value, date')
+      .select('stripe_subscription_id, stripe_customer_id, customer_email, customer_name, monthly_value, date')
       .eq('is_trial_counted', true)
       .gte('date', lookbackDateStr)
       .lte('date', todayStr);
@@ -1444,6 +1445,7 @@ app.get('/api/trial-conversion/calculate', async (req, res) => {
       if (!uniqueTrialSubscriptions[snapshot.stripe_subscription_id]) {
         uniqueTrialSubscriptions[snapshot.stripe_subscription_id] = {
           stripe_subscription_id: snapshot.stripe_subscription_id,
+          stripe_customer_id: snapshot.stripe_customer_id,
           customer_email: snapshot.customer_email,
           customer_name: snapshot.customer_name,
           customer_display: snapshot.customer_name || snapshot.customer_email || 'Unknown',
@@ -1512,26 +1514,71 @@ app.get('/api/trial-conversion/calculate', async (req, res) => {
         continue;
       }
 
-      const { data: conversionSnapshots, error: conversionError } = await supabase
-        .from('customer_retention_snapshots')
-        .select('date, is_counted')
-        .eq('stripe_subscription_id', subscriptionId)
-        .eq('is_counted', true)
-        .gte('date', firstTrialDate)
-        .order('date', { ascending: true })
-        .limit(1);
+      // Check if this customer has any successful non-refunded payments via Stripe API
+      const customerId = trialInfo.stripe_customer_id;
+      let converted = false;
 
-      if (conversionError) {
-        console.error(`❌ [${requestId}] Error checking conversion for ${subscriptionId}:`, conversionError);
-        continue;
+      try {
+        // Get all invoices for this customer
+        const invoices = await stripe.invoices.list({
+          customer: customerId,
+          limit: 100
+        });
+
+        // Check if any invoice was successfully paid and not refunded
+        for (const invoice of invoices.data) {
+          if (invoice.status === 'paid' && invoice.amount_paid > 0) {
+            // Check if the payment was refunded, blocked, or failed
+            if (invoice.charge) {
+              const charge = await stripe.charges.retrieve(invoice.charge);
+              if (!charge.refunded &&
+                  charge.amount_refunded === 0 &&
+                  charge.status === 'succeeded' &&
+                  !charge.blocked) {
+                converted = true;
+                break;
+              }
+            } else if (invoice.payment_intent) {
+              const paymentIntent = await stripe.paymentIntents.retrieve(invoice.payment_intent);
+              if (paymentIntent.status === 'succeeded') {
+                const refunds = await stripe.refunds.list({
+                  payment_intent: paymentIntent.id,
+                  limit: 100
+                });
+                const totalRefunded = refunds.data.reduce((sum, refund) => sum + refund.amount, 0);
+                if (totalRefunded < paymentIntent.amount) {
+                  converted = true;
+                  break;
+                }
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error(`❌ [${requestId}] Error checking payment for customer ${customerId}:`, error.message);
       }
 
-      const converted = conversionSnapshots && conversionSnapshots.length > 0;
+      // Get conversion date from snapshots if they converted
+      let conversionDate = null;
+      if (converted) {
+        const { data: countedSnapshots } = await supabase
+          .from('customer_retention_snapshots')
+          .select('date')
+          .eq('stripe_subscription_id', subscriptionId)
+          .eq('is_counted', true)
+          .gte('date', firstTrialDate)
+          .order('date', { ascending: true })
+          .limit(1);
+
+        if (countedSnapshots && countedSnapshots.length > 0) {
+          conversionDate = countedSnapshots[0].date;
+        }
+      }
 
       const subscriptionDetail = {
         ...trialInfo,
         converted: converted,
-        conversion_date: converted ? conversionSnapshots[0].date : null
+        conversion_date: conversionDate
       };
 
       if (converted) {

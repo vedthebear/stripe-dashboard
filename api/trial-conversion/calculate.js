@@ -1,4 +1,5 @@
 const { createClient } = require('@supabase/supabase-js');
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -31,6 +32,89 @@ function getPacificDateDaysAgo(days) {
   const day = String(pacificDate.getDate()).padStart(2, '0');
 
   return `${year}-${month}-${day}`;
+}
+
+/**
+ * Check if customer has any successful non-refunded payments via Stripe API
+ */
+async function hasSuccessfulPayment(customerId) {
+  try {
+    console.log(`🔍 Checking payment for customer: ${customerId}`);
+
+    // Get all invoices for this customer
+    const invoices = await stripe.invoices.list({
+      customer: customerId,
+      limit: 100
+    });
+
+    console.log(`   Found ${invoices.data.length} invoices`);
+
+    // Check if any invoice was successfully paid and not refunded
+    for (const invoice of invoices.data) {
+      console.log(`   📄 Invoice ${invoice.id}: status=${invoice.status}, amount_paid=${invoice.amount_paid / 100}`);
+
+      if (invoice.status === 'paid' && invoice.amount_paid > 0) {
+        console.log(`      ✓ Invoice is paid with amount > 0`);
+
+        // Check if the payment was refunded, blocked, or failed
+        if (invoice.charge) {
+          console.log(`      🔍 Checking charge: ${invoice.charge}`);
+          const charge = await stripe.charges.retrieve(invoice.charge);
+          console.log(`         - refunded: ${charge.refunded}`);
+          console.log(`         - amount_refunded: ${charge.amount_refunded / 100}`);
+          console.log(`         - status: ${charge.status}`);
+          console.log(`         - blocked: ${charge.blocked}`);
+
+          // Only count as successful if:
+          // - Not refunded
+          // - No amount refunded
+          // - Status is 'succeeded' (not 'failed' or 'pending')
+          // - Not blocked
+          if (!charge.refunded &&
+              charge.amount_refunded === 0 &&
+              charge.status === 'succeeded' &&
+              !charge.blocked) {
+            console.log(`      ✅ PASS: All checks passed - counting as successful payment`);
+            return true;
+          } else {
+            console.log(`      ❌ FAIL: Charge failed one or more checks`);
+          }
+        } else if (invoice.payment_intent) {
+          console.log(`      🔍 Checking payment intent: ${invoice.payment_intent}`);
+          // For payment intents, check if it succeeded and wasn't refunded
+          const paymentIntent = await stripe.paymentIntents.retrieve(invoice.payment_intent);
+          console.log(`         - status: ${paymentIntent.status}`);
+          console.log(`         - amount: ${paymentIntent.amount / 100}`);
+
+          // Only count if status is 'succeeded' (excludes 'requires_payment_method', 'canceled', 'processing', etc.)
+          if (paymentIntent.status === 'succeeded') {
+            const refunds = await stripe.refunds.list({
+              payment_intent: paymentIntent.id,
+              limit: 100
+            });
+            const totalRefunded = refunds.data.reduce((sum, refund) => sum + refund.amount, 0);
+            console.log(`         - total_refunded: ${totalRefunded / 100}`);
+
+            if (totalRefunded < paymentIntent.amount) {
+              console.log(`      ✅ PASS: Payment intent succeeded with non-zero remaining amount`);
+              return true; // Some payment remains after refunds
+            } else {
+              console.log(`      ❌ FAIL: Payment intent fully refunded`);
+            }
+          } else {
+            console.log(`      ❌ FAIL: Payment intent status is not 'succeeded'`);
+          }
+        }
+      }
+    }
+
+    console.log(`   ❌ No successful payments found for customer ${customerId}`);
+    return false;
+  } catch (error) {
+    console.error(`Error checking payment for customer ${customerId}:`, error.message);
+    // If we can't check Stripe, return false (assume not converted)
+    return false;
+  }
 }
 
 export default async function handler(req, res) {
@@ -102,7 +186,7 @@ export default async function handler(req, res) {
     // Step 1: Find all distinct subscription_ids where is_trial_counted = true in the last x+1 days
     const { data: trialSnapshots, error: trialError } = await supabase
       .from('customer_retention_snapshots')
-      .select('stripe_subscription_id, customer_email, customer_name, monthly_value, date')
+      .select('stripe_subscription_id, stripe_customer_id, customer_email, customer_name, monthly_value, date')
       .eq('is_trial_counted', true)
       .gte('date', lookbackDateStr)
       .lte('date', todayStr);
@@ -118,6 +202,7 @@ export default async function handler(req, res) {
       if (!uniqueTrialSubscriptions[snapshot.stripe_subscription_id]) {
         uniqueTrialSubscriptions[snapshot.stripe_subscription_id] = {
           stripe_subscription_id: snapshot.stripe_subscription_id,
+          stripe_customer_id: snapshot.stripe_customer_id,
           customer_email: snapshot.customer_email,
           customer_name: snapshot.customer_name,
           customer_display: snapshot.customer_name || snapshot.customer_email || 'Unknown',
@@ -187,27 +272,31 @@ export default async function handler(req, res) {
         continue;
       }
 
-      // Check if this subscription ever had is_counted = true after the trial date
-      const { data: conversionSnapshots, error: conversionError } = await supabase
-        .from('customer_retention_snapshots')
-        .select('date, is_counted')
-        .eq('stripe_subscription_id', subscriptionId)
-        .eq('is_counted', true)
-        .gte('date', firstTrialDate)
-        .order('date', { ascending: true })
-        .limit(1);
+      // Check if this customer has any successful non-refunded payments via Stripe API
+      const customerId = trialInfo.stripe_customer_id;
+      const converted = await hasSuccessfulPayment(customerId);
 
-      if (conversionError) {
-        console.error(`❌ [${requestId}] Error checking conversion for ${subscriptionId}:`, conversionError);
-        continue;
+      // Get conversion date from snapshots if they converted
+      let conversionDate = null;
+      if (converted) {
+        const { data: countedSnapshots } = await supabase
+          .from('customer_retention_snapshots')
+          .select('date')
+          .eq('stripe_subscription_id', subscriptionId)
+          .eq('is_counted', true)
+          .gte('date', firstTrialDate)
+          .order('date', { ascending: true })
+          .limit(1);
+
+        if (countedSnapshots && countedSnapshots.length > 0) {
+          conversionDate = countedSnapshots[0].date;
+        }
       }
-
-      const converted = conversionSnapshots && conversionSnapshots.length > 0;
 
       const subscriptionDetail = {
         ...trialInfo,
         converted: converted,
-        conversion_date: converted ? conversionSnapshots[0].date : null
+        conversion_date: conversionDate
       };
 
       if (converted) {

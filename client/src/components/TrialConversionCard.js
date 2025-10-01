@@ -7,6 +7,7 @@ const TrialConversionCard = () => {
   const [error, setError] = useState(null);
   const [selectedPeriod, setSelectedPeriod] = useState('7'); // Default to 7-day
   const [isExpanded, setIsExpanded] = useState(false);
+  const [ignoredSubscriptions, setIgnoredSubscriptions] = useState(new Set());
 
   const periods = [
     { value: '7', label: '7-Day' },
@@ -68,6 +69,19 @@ const TrialConversionCard = () => {
   const handlePeriodChange = (period) => {
     setSelectedPeriod(period);
     setIsExpanded(false); // Collapse when changing periods
+    setIgnoredSubscriptions(new Set()); // Reset ignored subscriptions when changing periods
+  };
+
+  const toggleIgnoreSubscription = (subscriptionId) => {
+    setIgnoredSubscriptions(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(subscriptionId)) {
+        newSet.delete(subscriptionId);
+      } else {
+        newSet.add(subscriptionId);
+      }
+      return newSet;
+    });
   };
 
   if (loading) {
@@ -162,9 +176,12 @@ const TrialConversionCard = () => {
     );
   }
 
-  const conversionRate = conversionData.conversion_rate || 0;
-  const converted = conversionData.trial_details?.filter(t => t.converted) || [];
-  const unconverted = conversionData.trial_details?.filter(t => !t.converted) || [];
+  // Filter out ignored subscriptions and recalculate metrics
+  const converted = conversionData.trial_details?.filter(t => t.converted && !ignoredSubscriptions.has(t.stripe_subscription_id)) || [];
+  const unconverted = conversionData.trial_details?.filter(t => !t.converted && !ignoredSubscriptions.has(t.stripe_subscription_id)) || [];
+
+  const adjustedTotalTrials = converted.length + unconverted.length;
+  const adjustedConversionRate = adjustedTotalTrials > 0 ? (converted.length / adjustedTotalTrials) * 100 : 0;
 
   return (
     <div className="trial-conversion-card">
@@ -195,16 +212,16 @@ const TrialConversionCard = () => {
         <div className="conversion-rate-main">
           <div
             className="conversion-rate-number"
-            style={{ color: getConversionColor(conversionRate) }}
+            style={{ color: getConversionColor(adjustedConversionRate) }}
           >
-            {conversionRate.toFixed(1)}%
+            {adjustedConversionRate.toFixed(1)}%
           </div>
           <div className="conversion-icon-large">
-            {getConversionIcon(conversionRate)}
+            {getConversionIcon(adjustedConversionRate)}
           </div>
         </div>
         <div className="conversion-rate-subtitle">
-          {conversionData.metrics.converted_trials} of {conversionData.metrics.total_trials} trials converted
+          {converted.length} of {adjustedTotalTrials} trials converted
           {unconverted.length > 0 && ` • ${unconverted.length} canceled`}
         </div>
         <div className="expand-hint">
@@ -235,28 +252,42 @@ const TrialConversionCard = () => {
                       <th>Status</th>
                       <th>Monthly Value</th>
                       <th>Converted On</th>
+                      <th>Include</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {converted.map((trial, index) => (
-                      <tr key={index} className="converted-row">
-                        <td>
-                          <div className="customer-info">
-                            <div className="customer-name">{trial.customer_display}</div>
-                            <div className="customer-email">{trial.customer_email}</div>
-                          </div>
-                        </td>
-                        <td>
-                          <span className="status-badge converted">✅ Converted</span>
-                        </td>
-                        <td className="amount converted-amount">
-                          {formatCurrency(trial.monthly_value)}
-                        </td>
-                        <td className="date">
-                          {trial.conversion_date}
-                        </td>
-                      </tr>
-                    ))}
+                    {conversionData.trial_details?.filter(t => t.converted).map((trial, index) => {
+                      const isIgnored = ignoredSubscriptions.has(trial.stripe_subscription_id);
+                      return (
+                        <tr key={index} className={`converted-row ${isIgnored ? 'ignored-row' : ''}`}>
+                          <td>
+                            <div className="customer-info">
+                              <div className="customer-name">{trial.customer_display}</div>
+                              <div className="customer-email">{trial.customer_email}</div>
+                            </div>
+                          </td>
+                          <td>
+                            <span className="status-badge converted">✅ Converted</span>
+                          </td>
+                          <td className="amount converted-amount">
+                            {formatCurrency(trial.monthly_value)}
+                          </td>
+                          <td className="date">
+                            {trial.conversion_date}
+                          </td>
+                          <td>
+                            <label className="toggle-switch">
+                              <input
+                                type="checkbox"
+                                checked={!isIgnored}
+                                onChange={() => toggleIgnoreSubscription(trial.stripe_subscription_id)}
+                              />
+                              <span className="toggle-slider"></span>
+                            </label>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -279,28 +310,42 @@ const TrialConversionCard = () => {
                       <th>Status</th>
                       <th>Potential Value</th>
                       <th>Trial Started</th>
+                      <th>Include</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {unconverted.map((trial, index) => (
-                      <tr key={index} className="unconverted-row">
-                        <td>
-                          <div className="customer-info">
-                            <div className="customer-name">{trial.customer_display}</div>
-                            <div className="customer-email">{trial.customer_email}</div>
-                          </div>
-                        </td>
-                        <td>
-                          <span className="status-badge unconverted">❌ Canceled</span>
-                        </td>
-                        <td className="amount unconverted-amount">
-                          {formatCurrency(trial.monthly_value)}
-                        </td>
-                        <td className="date">
-                          {trial.first_trial_date}
-                        </td>
-                      </tr>
-                    ))}
+                    {conversionData.trial_details?.filter(t => !t.converted).map((trial, index) => {
+                      const isIgnored = ignoredSubscriptions.has(trial.stripe_subscription_id);
+                      return (
+                        <tr key={index} className={`unconverted-row ${isIgnored ? 'ignored-row' : ''}`}>
+                          <td>
+                            <div className="customer-info">
+                              <div className="customer-name">{trial.customer_display}</div>
+                              <div className="customer-email">{trial.customer_email}</div>
+                            </div>
+                          </td>
+                          <td>
+                            <span className="status-badge unconverted">❌ Canceled</span>
+                          </td>
+                          <td className="amount unconverted-amount">
+                            {formatCurrency(trial.monthly_value)}
+                          </td>
+                          <td className="date">
+                            {trial.first_trial_date}
+                          </td>
+                          <td>
+                            <label className="toggle-switch">
+                              <input
+                                type="checkbox"
+                                checked={!isIgnored}
+                                onChange={() => toggleIgnoreSubscription(trial.stripe_subscription_id)}
+                              />
+                              <span className="toggle-slider"></span>
+                            </label>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -311,19 +356,19 @@ const TrialConversionCard = () => {
           <div className="conversion-summary">
             <div className="summary-stat">
               <div className="summary-label">Total Trials</div>
-              <div className="summary-value">{conversionData.metrics.total_trials}</div>
+              <div className="summary-value">{adjustedTotalTrials}</div>
             </div>
             <div className="summary-stat success">
               <div className="summary-label">Converted</div>
-              <div className="summary-value">{conversionData.metrics.converted_trials}</div>
+              <div className="summary-value">{converted.length}</div>
             </div>
             <div className="summary-stat warning">
               <div className="summary-label">Canceled</div>
-              <div className="summary-value">{conversionData.metrics.unconverted_trials}</div>
+              <div className="summary-value">{unconverted.length}</div>
             </div>
             <div className="summary-stat info">
               <div className="summary-label">Conversion Rate</div>
-              <div className="summary-value">{conversionRate.toFixed(0)}%</div>
+              <div className="summary-value">{adjustedConversionRate.toFixed(0)}%</div>
             </div>
           </div>
         </div>

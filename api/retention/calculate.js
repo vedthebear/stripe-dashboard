@@ -65,62 +65,63 @@ export default async function handler(req, res) {
     console.log(`   Today: ${todayStr}`);
     console.log(`   ${days} days ago: ${previousDateStr}`);
 
-    // Get paying customers from previous date snapshot
-    const { data: previousCustomers, error: previousError } = await supabase
+    // Step 1: Get all subscriptions that were is_counted=true exactly X days ago
+    const { data: previousSubscriptions, error: previousError } = await supabase
       .from('customer_retention_snapshots')
-      .select('stripe_customer_id, customer_email, customer_name, monthly_value, subscription_status, stripe_subscription_id')
+      .select('stripe_subscription_id, customer_email, customer_name, monthly_value, stripe_customer_id')
       .eq('date', previousDateStr)
-      .eq('is_counted', true)
-      .neq('subscription_status', 'trialing');
+      .eq('is_counted', true);
 
     if (previousError) {
-      console.error(`❌ [${requestId}] Error fetching previous customers:`, previousError);
+      console.error(`❌ [${requestId}] Error fetching previous subscriptions:`, previousError);
       throw previousError;
     }
 
-    // Get paying customers from today's snapshot
-    const { data: todayCustomers, error: todayError } = await supabase
+    // Step 2: Get all subscriptions that are is_counted=true today (most recent data)
+    const { data: todaySubscriptions, error: todayError } = await supabase
       .from('customer_retention_snapshots')
-      .select('stripe_customer_id, customer_email, customer_name, monthly_value, subscription_status, stripe_subscription_id')
+      .select('stripe_subscription_id')
       .eq('date', todayStr)
-      .eq('is_counted', true)
-      .neq('subscription_status', 'trialing');
+      .eq('is_counted', true);
 
     if (todayError) {
-      console.error(`❌ [${requestId}] Error fetching today's customers:`, todayError);
+      console.error(`❌ [${requestId}] Error fetching today's subscriptions:`, todayError);
       throw todayError;
     }
 
-    // Create sets for comparison
-    const todayCustomerIds = new Set(todayCustomers.map(c => c.stripe_customer_id));
-    const previousCustomerIds = new Set(previousCustomers.map(c => c.stripe_customer_id));
+    // Step 3: Create a set of today's is_counted subscription IDs for fast lookup
+    const todaySubscriptionIds = new Set(todaySubscriptions.map(s => s.stripe_subscription_id));
 
-    // Calculate retention metrics
-    const retainedCustomerIds = [...previousCustomerIds].filter(id => todayCustomerIds.has(id));
-    const churnedCustomerIds = [...previousCustomerIds].filter(id => !todayCustomerIds.has(id));
-    const newCustomerIds = [...todayCustomers].filter(c => !previousCustomerIds.has(c.stripe_customer_id));
+    // Step 4: Check each previous subscription - if it's still is_counted today, it's retained
+    const retained = [];
+    const churned = [];
 
-    const previousCount = previousCustomerIds.size;
-    const todayCount = todayCustomerIds.size;
-    const retainedCount = retainedCustomerIds.length;
-    const churnedCount = churnedCustomerIds.length;
-    const newCount = newCustomerIds.length;
+    for (const sub of previousSubscriptions) {
+      const subscriptionDetail = {
+        stripe_subscription_id: sub.stripe_subscription_id,
+        stripe_customer_id: sub.stripe_customer_id,
+        customer_email: sub.customer_email,
+        customer_name: sub.customer_name,
+        customer_display: sub.customer_name || sub.customer_email || 'Unknown',
+        monthly_value: parseFloat(sub.monthly_value)
+      };
 
+      if (todaySubscriptionIds.has(sub.stripe_subscription_id)) {
+        subscriptionDetail.status = 'retained';
+        retained.push(subscriptionDetail);
+      } else {
+        subscriptionDetail.status = 'churned';
+        churned.push(subscriptionDetail);
+      }
+    }
+
+    const previousCount = previousSubscriptions.length;
+    const retainedCount = retained.length;
+    const churnedCount = churned.length;
     const retentionRate = previousCount > 0 ? (retainedCount / previousCount) * 100 : 0;
 
-    // Create detailed subscription list with status
-    const subscriptionDetails = previousCustomers.map(customer => {
-      const isRetained = todayCustomerIds.has(customer.stripe_customer_id);
-      return {
-        stripe_subscription_id: customer.stripe_subscription_id,
-        stripe_customer_id: customer.stripe_customer_id,
-        customer_email: customer.customer_email,
-        customer_name: customer.customer_name,
-        monthly_value: parseFloat(customer.monthly_value),
-        status: isRetained ? 'retained' : 'churned',
-        customer_display: customer.customer_name || customer.customer_email || 'Unknown'
-      };
-    });
+    // Combine and sort: churned first, then by monthly value descending
+    const subscriptionDetails = [...churned, ...retained];
 
     // Sort: churned first, then by monthly value descending
     subscriptionDetails.sort((a, b) => {
@@ -135,10 +136,10 @@ export default async function handler(req, res) {
       retention_rate: Math.round(retentionRate * 100) / 100,
       metrics: {
         previous_period_customers: previousCount,
-        current_period_customers: todayCount,
+        current_period_customers: previousCount,
         retained_customers: retainedCount,
         churned_customers: churnedCount,
-        new_customers: newCount
+        new_customers: 0
       },
       period_labels: {
         previous: previousDateStr,
@@ -150,8 +151,8 @@ export default async function handler(req, res) {
     };
 
     console.log(`✅ [${requestId}] ${days}-day retention calculated: ${retentionRate.toFixed(2)}% retention rate`);
-    console.log(`   ${days} days ago (${previousDateStr}): ${previousCount} customers, Today (${todayStr}): ${todayCount} customers`);
-    console.log(`   Retained: ${retainedCount}, Churned: ${churnedCount}, New: ${newCount}`);
+    console.log(`   ${days} days ago (${previousDateStr}): ${previousCount} subscriptions`);
+    console.log(`   Retained: ${retainedCount}, Churned: ${churnedCount}`);
 
     res.json(responseData);
 
