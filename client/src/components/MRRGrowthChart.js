@@ -107,15 +107,16 @@ const MRRGrowthChart = () => {
   const width = 400;
   const height = 200;
   const padding = 40;
+  const leftPadding = 60; // Extra padding for y-axis labels
 
   const maxMRR = Math.max(...chartData.map(d => d.official_mrr));
-  const minMRR = Math.min(...chartData.map(d => d.official_mrr));
-  const mrrRange = maxMRR - minMRR || 1;
+  const minMRR = 0; // Always start from 0
+  const mrrRange = maxMRR || 1;
 
   // Generate SVG path
   const generatePath = () => {
     const points = chartData.map((d, i) => {
-      const x = padding + (i / (chartData.length - 1)) * (width - 2 * padding);
+      const x = leftPadding + (i / (chartData.length - 1)) * (width - leftPadding - padding);
       const y = height - padding - ((d.official_mrr - minMRR) / mrrRange) * (height - 2 * padding);
       return `${x},${y}`;
     });
@@ -125,7 +126,7 @@ const MRRGrowthChart = () => {
   // Generate area path
   const generateAreaPath = () => {
     const points = chartData.map((d, i) => {
-      const x = padding + (i / (chartData.length - 1)) * (width - 2 * padding);
+      const x = leftPadding + (i / (chartData.length - 1)) * (width - leftPadding - padding);
       const y = height - padding - ((d.official_mrr - minMRR) / mrrRange) * (height - 2 * padding);
       return `${x},${y}`;
     });
@@ -177,7 +178,7 @@ const MRRGrowthChart = () => {
           {[0, 0.25, 0.5, 0.75, 1].map((ratio, i) => (
             <g key={i}>
               <line
-                x1={padding}
+                x1={leftPadding}
                 y1={height - padding - ratio * (height - 2 * padding)}
                 x2={width - padding}
                 y2={height - padding - ratio * (height - 2 * padding)}
@@ -185,7 +186,7 @@ const MRRGrowthChart = () => {
                 strokeWidth="1"
               />
               <text
-                x={padding - 10}
+                x={leftPadding - 10}
                 y={height - padding - ratio * (height - 2 * padding) + 4}
                 fontSize="11"
                 fill="#9CA3AF"
@@ -215,7 +216,7 @@ const MRRGrowthChart = () => {
           {chartData.map((d, i) => {
             if (i % Math.max(1, Math.floor(chartData.length / 6)) !== 0 && i !== chartData.length - 1) return null;
 
-            const x = padding + (i / (chartData.length - 1)) * (width - 2 * padding);
+            const x = leftPadding + (i / (chartData.length - 1)) * (width - leftPadding - padding);
             const y = height - padding - ((d.official_mrr - minMRR) / mrrRange) * (height - 2 * padding);
 
             return (
