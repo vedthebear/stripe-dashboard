@@ -51,7 +51,7 @@ const hardcodedSubscriptions = [
     customer_email: 'moody@klarify.com',
     customer_name: 'Moody Abdul',
     subscription_status: 'active',
-    monthly_total: 1100,
+    monthly_total: 1050,
     date_created: '2024-07-01T00:00:00Z',
     trial_end_date: null,
     is_active: true,
@@ -82,7 +82,7 @@ const hardcodedSubscriptions = [
     trial_end_date: null,
     is_active: true,
     is_counted: true,
-    customer_display: 'Michael',
+    customer_display: 'Ken Colton',
     created_formatted: '7/1/2024'
   }
 ];

@@ -205,7 +205,7 @@ const TrialConversionCard = () => {
         </div>
         <div className="conversion-rate-subtitle">
           {conversionData.metrics.converted_trials} of {conversionData.metrics.total_trials} trials converted
-          {unconverted.length > 0 && ` • ${unconverted.length} still in trial`}
+          {unconverted.length > 0 && ` • ${unconverted.length} canceled`}
         </div>
         <div className="expand-hint">
           Click to {isExpanded ? 'hide' : 'show'} details {isExpanded ? '▲' : '▼'}
@@ -263,13 +263,13 @@ const TrialConversionCard = () => {
             </div>
           )}
 
-          {/* Unconverted Trials */}
+          {/* Canceled Trials (didn't convert) */}
           {unconverted.length > 0 && (
             <div className="trial-section">
               <div className="section-header unconverted">
-                <span className="section-icon">⏳</span>
-                <span className="section-title">In Trial ({unconverted.length})</span>
-                <span className="section-total">{formatCurrency(unconverted.reduce((sum, t) => sum + t.monthly_value, 0))}/mo potential</span>
+                <span className="section-icon">❌</span>
+                <span className="section-title">Canceled ({unconverted.length})</span>
+                <span className="section-total">{formatCurrency(unconverted.reduce((sum, t) => sum + t.monthly_value, 0))}/mo lost</span>
               </div>
               <div className="table-container">
                 <table className="analytics-table">
@@ -291,7 +291,7 @@ const TrialConversionCard = () => {
                           </div>
                         </td>
                         <td>
-                          <span className="status-badge unconverted">⏳ In Trial</span>
+                          <span className="status-badge unconverted">❌ Canceled</span>
                         </td>
                         <td className="amount unconverted-amount">
                           {formatCurrency(trial.monthly_value)}
@@ -318,7 +318,7 @@ const TrialConversionCard = () => {
               <div className="summary-value">{conversionData.metrics.converted_trials}</div>
             </div>
             <div className="summary-stat warning">
-              <div className="summary-label">In Trial</div>
+              <div className="summary-label">Canceled</div>
               <div className="summary-value">{conversionData.metrics.unconverted_trials}</div>
             </div>
             <div className="summary-stat info">
